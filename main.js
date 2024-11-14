@@ -77,13 +77,13 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 // Player cube setup
-const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-const cubeMaterial = new THREE.MeshStandardMaterial({ color: '#ae00ff' });
-const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-cube.position.set(0, 0, 0);
-cube.castShadow = true;
-cube.velocity = new THREE.Vector3(0, 0, 0);
-scene.add(cube);
+// const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+// const cubeMaterial = new THREE.MeshStandardMaterial({ color: '#ae00ff' });
+// const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+// cube.position.set(0, 0, 0);
+// cube.castShadow = true;
+// cube.velocity = new THREE.Vector3(0, 0, 0);
+// scene.add(cube);
 
 // Lighting setup
 const light = new THREE.DirectionalLight(0xffffff, 1);
@@ -114,9 +114,9 @@ window.addEventListener('keydown', (event) => {
       keys.s = true;
       break;
     case 'Space':
-      if (cube.position.y <= groundLevel + 0.51) {
-        cube.velocity.y = 0.2;
-      }
+      // if (cube.position.y <= groundLevel + 0.51) {
+      //   cube.velocity.y = 0.2;
+      // }
       if (model.position.y <= groundLevel + 0.51) {
         model.velocity.y = 0.2;
       }
@@ -158,16 +158,16 @@ function animate() {
   const animationId = requestAnimationFrame(animate);
 
   // Apply gravity
-  cube.velocity.y += gravity;
-  cube.position.y += cube.velocity.y;
+  // cube.velocity.y += gravity;
+  // cube.position.y += cube.velocity.y;
 
   
 
   // Ground collision
-  if (cube.position.y - 0.5 <= groundLevel) {
-    cube.position.y = groundLevel + 0.5;
-    cube.velocity.y = 0;
-  }
+  // if (cube.position.y - 0.5 <= groundLevel) {
+  //   cube.position.y = groundLevel + 0.5;
+  //   cube.velocity.y = 0;
+  // }
   const moveSpeed = 0.1;
   if (model)
   {
@@ -186,10 +186,10 @@ function animate() {
 
   // Player movement
  
-  if (keys.a) cube.position.x -= moveSpeed;
-  if (keys.d) cube.position.x += moveSpeed;
-  if (keys.w) cube.position.z -= moveSpeed;
-  if (keys.s) cube.position.z += moveSpeed;
+  // if (keys.a) cube.position.x -= moveSpeed;
+  // if (keys.d) cube.position.x += moveSpeed;
+  // if (keys.w) cube.position.z -= moveSpeed;
+  // if (keys.s) cube.position.z += moveSpeed;
 
   
 
@@ -216,10 +216,10 @@ function animate() {
     enemy.position.z += enemy.velocity.z;
 
     // Collision with player
-    if (boxCollision(cube, enemy)) {
-      cancelAnimationFrame(animationId);
-      alert('Game Over!');
-    }
+    // if (boxCollision(cube, enemy)) {
+    //   cancelAnimationFrame(animationId);
+    //   alert('Game Over!');
+    // }
     if (model)
     if (boxCollision(model, enemy)) {
       cancelAnimationFrame(animationId);
