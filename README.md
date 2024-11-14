@@ -1,4 +1,4 @@
-# Space Wars
+# Space Dash
 
 ## Setup
 
