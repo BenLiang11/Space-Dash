@@ -1,16 +1,51 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const scene = new THREE.Scene();
 
-// Space background
+
+
+//Space background
 const loader = new THREE.TextureLoader();
 loader.load('textures/space.jpg', function(texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(2, 2);
-  scene.background = texture;aw
+  // texture.repeat.set(2, 2);
+  scene.background = texture;
 });
+
+
+// Create a new loader2 instance using GLTFLoader
+const loader2 = new GLTFLoader();
+let model;
+// Load a GLTF model
+loader2.load(
+  'roboball/scene.gltf', // The path to the GLTF model
+  (gltf) => {
+    // The model is successfully loaded
+    model = gltf.scene;
+    scene.add(model);
+
+    // Optional: adjust the model's scale and position
+    model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
+    model.rotation.y = Math.PI;
+    model.position.set(0, 0, 0); // Set the position of the model
+    model.castShadow = true;
+    model.receiveShadow = true;
+    model.velocity = new THREE.Vector3(0, 0, 0);
+  },
+  (xhr) => {
+    // Optional: Track the loading progress
+    console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
+  },
+  (error) => {
+    // Handle any errors that occur
+    console.error('An error happened while loading the GLTF model:', error);
+  }
+);
+
+
+
 
 // Camera
 const camera = new THREE.PerspectiveCamera(
@@ -25,11 +60,17 @@ camera.position.set(0, 5, 10);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true; // Enable shadows
+
 document.body.appendChild(renderer.domElement);
+
+
+
+const controls = new OrbitControls(camera, renderer.domElement)
+
 
 // Ground (lane) setup
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
-const groundMaterial = new THREE.MeshStandardMaterial({ color: '#17ffff' });
+const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -2, 0);
 ground.receiveShadow = true;
@@ -76,6 +117,9 @@ window.addEventListener('keydown', (event) => {
       if (cube.position.y <= groundLevel + 0.51) {
         cube.velocity.y = 0.2;
       }
+      if (model.position.y <= groundLevel + 0.51) {
+        model.velocity.y = 0.2;
+      }
       break;
   }
 });
@@ -117,18 +161,37 @@ function animate() {
   cube.velocity.y += gravity;
   cube.position.y += cube.velocity.y;
 
+  
+
   // Ground collision
   if (cube.position.y - 0.5 <= groundLevel) {
     cube.position.y = groundLevel + 0.5;
     cube.velocity.y = 0;
   }
+  const moveSpeed = 0.1;
+  if (model)
+  {
+    model.velocity.y += gravity;
+    model.position.y += model.velocity.y;
+    if (model.position.y - 0.5 <= groundLevel) {
+      model.position.y = groundLevel + 0.5;
+      model.velocity.y = 0;
+    }
+    if (keys.a) model.position.x -= moveSpeed;
+    if (keys.d) model.position.x += moveSpeed;
+    if (keys.w) model.position.z -= moveSpeed;
+    if (keys.s) model.position.z += moveSpeed;
+  }
+  
 
   // Player movement
-  const moveSpeed = 0.1;
+ 
   if (keys.a) cube.position.x -= moveSpeed;
   if (keys.d) cube.position.x += moveSpeed;
   if (keys.w) cube.position.z -= moveSpeed;
   if (keys.s) cube.position.z += moveSpeed;
+
+  
 
   // Enemy spawning
   if (frames % spawnRate === 0) {
@@ -157,6 +220,11 @@ function animate() {
       cancelAnimationFrame(animationId);
       alert('Game Over!');
     }
+    if (model)
+    if (boxCollision(model, enemy)) {
+      cancelAnimationFrame(animationId);
+      alert('Game Over!');
+    }
 
     // Remove off-screen enemies
     if (enemy.position.z > 10) {
@@ -167,7 +235,11 @@ function animate() {
 
   frames++;
 
+
+
   renderer.render(scene, camera);
+
+  controls.update();
 }
 animate();
 
