@@ -7,7 +7,7 @@ const scene = new THREE.Scene();
 
 //Space background
 const loader = new THREE.TextureLoader();
-loader.load('textures/space.jpg', function(texture) {
+loader.load('textures/space.jpg', function (texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   // texture.repeat.set(2, 2);
@@ -97,6 +97,44 @@ scene.add(ambientLight);
 const gravity = -0.01;
 const groundLevel = ground.position.y;
 
+// Variables for gameplay
+let isPaused = false;
+
+// Imports for pause overlay
+const googleFontLink = document.createElement('link');
+googleFontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap';
+googleFontLink.rel = 'stylesheet';
+document.head.appendChild(googleFontLink);
+
+// Pause overlay
+const pausedOverlay = document.createElement('div');
+pausedOverlay.style.position = 'absolute';
+pausedOverlay.style.top = '0';
+pausedOverlay.style.left = '0';
+pausedOverlay.style.width = '100%';
+pausedOverlay.style.height = '100%';
+pausedOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+pausedOverlay.style.color = 'white';
+pausedOverlay.style.fontSize = '50px';
+pausedOverlay.style.justifyContent = 'center';
+pausedOverlay.style.lineHeight = '100vh';
+pausedOverlay.style.display = 'none';
+pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
+pausedOverlay.innerText = 'GAME PAUSED';
+document.body.appendChild(pausedOverlay);
+
+// Pause function
+function togglePause() {
+  isPaused = !isPaused;
+  if (isPaused) {
+    console.log("Game Paused");
+    pausedOverlay.style.display = 'flex';
+  } else {
+    console.log("Game Resumed");
+    pausedOverlay.style.display = 'none';
+  }
+}
+
 // Key press tracking
 const keys = { a: false, d: false, w: false, s: false };
 window.addEventListener('keydown', (event) => {
@@ -121,6 +159,10 @@ window.addEventListener('keydown', (event) => {
         model.velocity.y = 0.2;
       }
       break;
+    case 'Escape':
+      togglePause();
+      break;
+
   }
 });
 window.addEventListener('keyup', (event) => {
@@ -155,13 +197,19 @@ function boxCollision(box1, box2) {
 
 // Animation loop
 function animate() {
+  // If paused, exit animate function
+  if (isPaused) {
+    requestAnimationFrame(animate);
+    return;
+  }
+
   const animationId = requestAnimationFrame(animate);
 
   // Apply gravity
   // cube.velocity.y += gravity;
   // cube.position.y += cube.velocity.y;
 
-  
+
 
   // Ground collision
   // if (cube.position.y - 0.5 <= groundLevel) {
@@ -169,8 +217,7 @@ function animate() {
   //   cube.velocity.y = 0;
   // }
   const moveSpeed = 0.1;
-  if (model)
-  {
+  if (model) {
     model.velocity.y += gravity;
     model.position.y += model.velocity.y;
     if (model.position.y - 0.5 <= groundLevel) {
@@ -182,16 +229,16 @@ function animate() {
     if (keys.w) model.position.z -= moveSpeed;
     if (keys.s) model.position.z += moveSpeed;
   }
-  
+
 
   // Player movement
- 
+
   // if (keys.a) cube.position.x -= moveSpeed;
   // if (keys.d) cube.position.x += moveSpeed;
   // if (keys.w) cube.position.z -= moveSpeed;
   // if (keys.s) cube.position.z += moveSpeed;
 
-  
+
 
   // Enemy spawning
   if (frames % spawnRate === 0) {
@@ -221,10 +268,10 @@ function animate() {
     //   alert('Game Over!');
     // }
     if (model)
-    if (boxCollision(model, enemy)) {
-      cancelAnimationFrame(animationId);
-      alert('Game Over!');
-    }
+      if (boxCollision(model, enemy)) {
+        cancelAnimationFrame(animationId);
+        alert('Game Over!');
+      }
 
     // Remove off-screen enemies
     if (enemy.position.z > 10) {
