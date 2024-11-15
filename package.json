@@ -14,5 +14,13 @@
   },
   "devDependencies": {
     "vite": "^5.4.11"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BenLiang11/Space-Dash.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BenLiang11/Space-Dash/issues"
+  },
+  "homepage": "https://github.com/BenLiang11/Space-Dash#readme"
 }
