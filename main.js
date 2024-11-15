@@ -100,11 +100,26 @@ const groundLevel = ground.position.y;
 // Variables for gameplay
 let isPaused = false;
 
-// Imports for pause overlay
+// Imports for overlays
 const googleFontLink = document.createElement('link');
 googleFontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap';
 googleFontLink.rel = 'stylesheet';
 document.head.appendChild(googleFontLink);
+
+// Score overlay
+const scoreOverlay = document.createElement('div');
+scoreOverlay.style.position = 'absolute';
+scoreOverlay.style.top = '0';
+scoreOverlay.style.left = '0';
+scoreOverlay.style.width = '100%';
+scoreOverlay.style.height = '100%';
+scoreOverlay.style.color = 'white';
+scoreOverlay.style.fontSize = '50px';
+scoreOverlay.style.justifyContent = 'center';
+scoreOverlay.style.display = 'flex';
+scoreOverlay.style.fontFamily = 'Orbitron, sans-serif';
+scoreOverlay.innerText = 'Score: 0';
+document.body.appendChild(scoreOverlay);
 
 // Pause overlay
 const pausedOverlay = document.createElement('div');
@@ -135,6 +150,11 @@ function togglePause() {
   }
 }
 
+// Score update function (based on how many frames passed)
+function updateScore() {
+  scoreOverlay.innerText = 'Score: ' + frames;
+}
+
 // Key press tracking
 const keys = { a: false, d: false, w: false, s: false };
 window.addEventListener('keydown', (event) => {
@@ -162,7 +182,6 @@ window.addEventListener('keydown', (event) => {
     case 'Escape':
       togglePause();
       break;
-
   }
 });
 window.addEventListener('keyup', (event) => {
@@ -281,7 +300,7 @@ function animate() {
   });
 
   frames++;
-
+  updateScore();
 
 
   renderer.render(scene, camera);
