@@ -214,6 +214,21 @@ function boxCollision(box1, box2) {
   return xCollide && yCollide && zCollide;
 }
 
+// Lane boundary detection
+function isPlayerInLane() {
+  // Calculate lane boundaries
+  const laneMinX = ground.position.x - (ground.geometry.parameters.width / 2);
+  const laneMaxX = ground.position.x + (ground.geometry.parameters.width / 2);
+
+  // Calculate player boundaries
+  const radius = model.scale.x / 2;
+  const playerMinX = model.position.x - radius;
+  const playerMaxX = model.position.x + radius;
+
+  // Check if player is within lane
+  return playerMinX >= laneMinX && playerMaxX <= laneMaxX;
+}
+
 // Animation loop
 function animate() {
   // If paused, exit animate function
@@ -298,6 +313,15 @@ function animate() {
       enemies.splice(index, 1);
     }
   });
+
+  // Game over if player not on lane
+  if (model) {
+    if (!isPlayerInLane()) {
+      cancelAnimationFrame(animationId);
+      alert('Game Over!');
+    }
+
+  }
 
   frames++;
   updateScore();
