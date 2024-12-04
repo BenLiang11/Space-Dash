@@ -117,8 +117,8 @@ window.addEventListener('keydown', (event) => {
       // if (cube.position.y <= groundLevel + 0.51) {
       //   cube.velocity.y = 0.2;
       // }
-      if (model.position.y <= groundLevel + 0.51) {
-        model.velocity.y = 0.2;
+      if (model.position.y-0.5 <= groundLevel + 0.51) {
+        model.velocity.y = 0.3;
       }
       break;
   }
@@ -153,6 +153,13 @@ function boxCollision(box1, box2) {
   return xCollide && yCollide && zCollide;
 }
 
+
+
+
+
+
+let rotationSpeed=0;
+
 // Animation loop
 function animate() {
   const animationId = requestAnimationFrame(animate);
@@ -170,11 +177,11 @@ function animate() {
   // }
   const moveSpeed = 0.1;
   if (model)
-  {
+  {    
     model.velocity.y += gravity;
     model.position.y += model.velocity.y;
-    if (model.position.y - 0.5 <= groundLevel) {
-      model.position.y = groundLevel + 0.5;
+    if (model.position.y - 1  <= groundLevel) {
+      model.position.y = groundLevel + 1;
       model.velocity.y = 0;
     }
     if (keys.a) model.position.x -= moveSpeed;
@@ -234,7 +241,22 @@ function animate() {
   });
 
   frames++;
-
+  if (model)
+  {
+    if (frames%420==0) //every 7 sec
+    {
+      rotationSpeed=0.03;
+    }
+    if (frames%420==120)
+    {
+      rotationSpeed=-0.03;
+    }
+    if (frames%420==240)
+    {
+      rotationSpeed=0;
+    }
+    model.rotation.y += rotationSpeed;
+  }
 
 
   renderer.render(scene, camera);
