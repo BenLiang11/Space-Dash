@@ -110,15 +110,6 @@ ground.position.set(0, -2, 0);
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Player cube setup
-// const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-// const cubeMaterial = new THREE.MeshStandardMaterial({ color: '#ae00ff' });
-// const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-// cube.position.set(0, 0, 0);
-// cube.castShadow = true;
-// cube.velocity = new THREE.Vector3(0, 0, 0);
-// scene.add(cube);
-
 // Lighting setup
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 10, 10);
@@ -266,6 +257,8 @@ function isPlayerInLane() {
 
 const clock = new THREE.Clock();
 
+let isFallingOffEdge = false;
+
 // Animation loop
 function animate() {
   // If paused, exit animate function
@@ -275,44 +268,19 @@ function animate() {
   }
 
   groundMaterial.uniforms.iTime.value = clock.getElapsedTime();
-
-
   const animationId = requestAnimationFrame(animate);
 
-  // Apply gravity
-  // cube.velocity.y += gravity;
-  // cube.position.y += cube.velocity.y;
-
-
-
-  // Ground collision
-  // if (cube.position.y - 0.5 <= groundLevel) {
-  //   cube.position.y = groundLevel + 0.5;
-  //   cube.velocity.y = 0;
-  // }
+  // Gravity
   const moveSpeed = 0.1;
   if (model) {
     model.velocity.y += gravity;
     model.position.y += model.velocity.y;
-    if (model.position.y - 1  <= groundLevel) {
-      model.position.y = groundLevel + 1;
-      model.velocity.y = 0;
-    }
+    
     if (keys.a) model.position.x -= moveSpeed;
     if (keys.d) model.position.x += moveSpeed;
     if (keys.w) model.position.z -= moveSpeed;
     if (keys.s) model.position.z += moveSpeed;
   }
-
-
-  // Player movement
-
-  // if (keys.a) cube.position.x -= moveSpeed;
-  // if (keys.d) cube.position.x += moveSpeed;
-  // if (keys.w) cube.position.z -= moveSpeed;
-  // if (keys.s) cube.position.z += moveSpeed;
-
-
 
   // Enemy spawning
   if (frames % spawnRate === 0) {
@@ -371,18 +339,26 @@ function animate() {
     }
     model.rotation.y += rotationSpeed;
   }
-  // Game over if player not on lane
-  if (model) {
-    if (!isPlayerInLane()) {
-      cancelAnimationFrame(animationId);
-      alert('Game Over!');
-    }
 
+  // If player is not in lane
+  if (model && !isPlayerInLane()) {
+    isFallingOffEdge = true;
   }
 
+  if (!isFallingOffEdge) {
+    // Apply normal ground collision if the player is NOT falling off the edge
+    if (model.position.y - 0.5 <= groundLevel) {
+      model.position.y = groundLevel + 0.5;
+      model.velocity.y = 0;
+    }
+  }
+
+  if (isFallingOffEdge && model.position.y < -50) {
+    cancelAnimationFrame(animationId);
+    alert('Game Over! You fell off the edge.');
+  }
 
   updateScore();
-
 
   renderer.render(scene, camera);
 
