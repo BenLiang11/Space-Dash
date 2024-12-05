@@ -60,7 +60,7 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement)
 
-// Ground (lane) setup
+// ------------ Ground (lane) setup ------------
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
 //const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
 const groundMaterial = new THREE.ShaderMaterial({ 
@@ -122,9 +122,6 @@ scene.add(ambientLight);
 const gravity = -0.01;
 const groundLevel = ground.position.y;
 
-// Variables for gameplay
-let isPaused = false;
-
 // Imports for overlays
 const googleFontLink = document.createElement('link');
 googleFontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap';
@@ -162,6 +159,10 @@ pausedOverlay.style.display = 'none';
 pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
 pausedOverlay.innerText = 'GAME PAUSED';
 document.body.appendChild(pausedOverlay);
+
+// ------------ Menu ------------
+let isPaused = false;
+let isFallingOffEdge = false;
 
 // Pause function
 function togglePause() {
@@ -226,7 +227,7 @@ window.addEventListener('keyup', (event) => {
   }
 });
 
-// Enemy cubes array
+// ------------ Enemies ------------
 const enemies = [];
 let frames = 0;
 let spawnRate = 200;
@@ -257,9 +258,41 @@ function isPlayerInLane() {
 
 const clock = new THREE.Clock();
 
-let isFallingOffEdge = false;
+// ------------ Powerups ------------
+let hasShield = false;
+let isInvulnerable = false;
 
-// Animation loop
+const shieldPowerUps = [];
+const shieldSpawnRate = 1500;
+
+function spawnShieldPowerUp() {
+  const shieldGeometry = new THREE.SphereGeometry(0.5, 16, 16); 
+  const shieldMaterial = new THREE.MeshStandardMaterial({ color: 'cyan', emissive: 'blue', emissiveIntensity: 0.5 });
+  const shieldPowerUp = new THREE.Mesh(shieldGeometry, shieldMaterial);
+  
+  // Position the shield power-up at a random x within the lane, and slightly above ground
+  const laneWidth = ground.geometry.parameters.width; 
+  shieldPowerUp.position.set(
+    (Math.random() - 0.5) * laneWidth, 
+    groundLevel + 1, 
+    -15 // spawn ahead of the player
+  );
+  
+  shieldPowerUp.velocity = new THREE.Vector3(0, 0, 0.05);
+  shieldPowerUp.castShadow = true;
+
+  scene.add(shieldPowerUp);
+  shieldPowerUps.push(shieldPowerUp);
+}
+
+function playerCollidesWithShield(shield) {
+  const xCollide = Math.abs(model.position.x - shield.position.x) < 1;
+  const yCollide = Math.abs(model.position.y - shield.position.y) < 1;
+  const zCollide = Math.abs(model.position.z - shield.position.z) < 1;
+  return xCollide && yCollide && zCollide;
+}
+
+// ------------ Animation loop ------------
 function animate() {
   // If paused, exit animate function
   if (isPaused) {
@@ -300,20 +333,58 @@ function animate() {
     enemies.push(enemy);
   }
 
+  // Power up spawning
+  if (frames % shieldSpawnRate === 0) {
+    spawnShieldPowerUp();
+  }
+
+  // Update shield power-ups
+  shieldPowerUps.forEach((shield, index) => {
+    shield.position.z += shield.velocity.z;
+
+    // Check collision with player
+    if (model && playerCollidesWithShield(shield)) {
+      hasShield = true;
+      scene.remove(shield);
+      shieldPowerUps.splice(index, 1);
+      console.log("Shield acquired!");
+    }
+
+    // Remove off-screen shield power-ups
+    if (shield.position.z > 10) {
+      scene.remove(shield);
+      shieldPowerUps.splice(index, 1);
+    }
+  });
+
   // Update enemies
   enemies.forEach((enemy, index) => {
     enemy.position.z += enemy.velocity.z;
 
-    // Collision with player
-    // if (boxCollision(cube, enemy)) {
-    //   cancelAnimationFrame(animationId);
-    //   alert('Game Over!');
-    // }
-    if (model)
+    if (model) {
+      // Collision with player
       if (boxCollision(model, enemy)) {
-        cancelAnimationFrame(animationId);
-        alert('Game Over!');
+        if (hasShield) {
+          // Shield breaks, player becomes invulnerable for 1 second
+          hasShield = false;
+          isInvulnerable = true;
+          console.log("Shield broken! Player is invulnerable for 1 second.");
+          setTimeout(() => {
+            isInvulnerable = false;
+            console.log("Invulnerability worn off.");
+          }, 1000);
+          
+          // Remove the enemy that broke the shield
+          scene.remove(enemy);
+          enemies.splice(index, 1);
+        } else if (!isInvulnerable) {
+          // Normal game over behavior if no shield and not invulnerable
+          cancelAnimationFrame(animationId);
+          alert('Game Over!');
+        } 
+        // If isInvulnerable, just ignore the collisionds
       }
+    }
 
     // Remove off-screen enemies
     if (enemy.position.z > 10) {
