@@ -4,7 +4,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const scene = new THREE.Scene();
 
 
-
 //Space background
 const loader = new THREE.TextureLoader();
 loader.load('textures/space.jpg', function (texture) {
@@ -13,7 +12,6 @@ loader.load('textures/space.jpg', function (texture) {
   // texture.repeat.set(2, 2);
   scene.background = texture;
 });
-
 
 // Create a new loader2 instance using GLTFLoader
 const loader2 = new GLTFLoader();
@@ -44,9 +42,6 @@ loader2.load(
   }
 );
 
-
-
-
 // Camera
 const camera = new THREE.PerspectiveCamera(
   90,
@@ -63,10 +58,7 @@ renderer.shadowMap.enabled = true; // Enable shadows
 
 document.body.appendChild(renderer.domElement);
 
-
-
 const controls = new OrbitControls(camera, renderer.domElement)
-
 
 // Ground (lane) setup
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
@@ -255,11 +247,6 @@ function boxCollision(box1, box2) {
   const zCollide = Math.abs(box1.position.z - box2.position.z) < 1;
   return xCollide && yCollide && zCollide;
 }
-
-
-
-
-
 
 let rotationSpeed=0;
 // Lane boundary detection
