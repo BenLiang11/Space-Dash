@@ -7,7 +7,7 @@ const scene = new THREE.Scene();
 
 //Space background
 const loader = new THREE.TextureLoader();
-loader.load('textures/space.jpg', function(texture) {
+loader.load('textures/space.jpg', function (texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   // texture.repeat.set(2, 2);
@@ -70,7 +70,49 @@ const controls = new OrbitControls(camera, renderer.domElement)
 
 // Ground (lane) setup
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
-const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
+//const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
+const groundMaterial = new THREE.ShaderMaterial({ 
+  uniforms: {
+    iTime: { value: 0.0 }, // Time uniform for animation
+},
+vertexShader: `
+    varying vec2 vUv;
+
+    void main() {
+        vUv = uv; // Pass UV coordinates to the fragment shader
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`,
+fragmentShader: `
+    uniform float iTime;
+    varying vec2 vUv;
+
+    void main() {
+        
+        //float wave = sin(vUv.x * 10.0 + iTime) * 0.5 + 0.6;
+        //float colorFactor = sin(vUv.y * 20.0 - iTime) * 0.5 + 0.5;
+         vec2 distortedUv = vUv;
+        distortedUv.y += sin(distortedUv.x * 10.0 + iTime * 2.0) * 0.1; // Horizontal waves
+        distortedUv.x += sin(distortedUv.y * 15.0 - iTime * 1.5) * 0.05; // Vertical waves
+
+        // Create a wave-like pattern using sine functions
+        float wave = sin(distortedUv.x * 10.0 + iTime) * 0.5 + 0.6;
+        float colorFactor = sin(distortedUv.y * 20.0 - iTime) * 0.5 + 0.5;
+
+
+        vec3 baseColor = vec3(0.05, 0.1, 0.1); // Minimum brightness color
+       vec3 auroraColor = mix(vec3(0.0, 0.8, 0.5), vec3(0.3, 0.1, 0.8), colorFactor);
+        vec3 finalColor = mix(baseColor, auroraColor, wave);
+        // Combine wave effect with aurora color
+        //gl_FragColor = vec4(auroraColor * wave, 1.0);
+        gl_FragColor = vec4(finalColor, 1.0);
+
+
+    }
+`,
+side: THREE.DoubleSide,
+});
+
 const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 ground.position.set(0, -2, 0);
 ground.receiveShadow = true;
@@ -97,6 +139,64 @@ scene.add(ambientLight);
 const gravity = -0.01;
 const groundLevel = ground.position.y;
 
+// Variables for gameplay
+let isPaused = false;
+
+// Imports for overlays
+const googleFontLink = document.createElement('link');
+googleFontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap';
+googleFontLink.rel = 'stylesheet';
+document.head.appendChild(googleFontLink);
+
+// Score overlay
+const scoreOverlay = document.createElement('div');
+scoreOverlay.style.position = 'absolute';
+scoreOverlay.style.top = '0';
+scoreOverlay.style.left = '0';
+scoreOverlay.style.width = '100%';
+scoreOverlay.style.height = '100%';
+scoreOverlay.style.color = 'white';
+scoreOverlay.style.fontSize = '50px';
+scoreOverlay.style.justifyContent = 'center';
+scoreOverlay.style.display = 'flex';
+scoreOverlay.style.fontFamily = 'Orbitron, sans-serif';
+scoreOverlay.innerText = 'Score: 0';
+document.body.appendChild(scoreOverlay);
+
+// Pause overlay
+const pausedOverlay = document.createElement('div');
+pausedOverlay.style.position = 'absolute';
+pausedOverlay.style.top = '0';
+pausedOverlay.style.left = '0';
+pausedOverlay.style.width = '100%';
+pausedOverlay.style.height = '100%';
+pausedOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+pausedOverlay.style.color = 'white';
+pausedOverlay.style.fontSize = '50px';
+pausedOverlay.style.justifyContent = 'center';
+pausedOverlay.style.lineHeight = '100vh';
+pausedOverlay.style.display = 'none';
+pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
+pausedOverlay.innerText = 'GAME PAUSED';
+document.body.appendChild(pausedOverlay);
+
+// Pause function
+function togglePause() {
+  isPaused = !isPaused;
+  if (isPaused) {
+    console.log("Game Paused");
+    pausedOverlay.style.display = 'flex';
+  } else {
+    console.log("Game Resumed");
+    pausedOverlay.style.display = 'none';
+  }
+}
+
+// Score update function (based on how many frames passed)
+function updateScore() {
+  scoreOverlay.innerText = 'Score: ' + frames;
+}
+
 // Key press tracking
 const keys = { a: false, d: false, w: false, s: false };
 window.addEventListener('keydown', (event) => {
@@ -120,6 +220,9 @@ window.addEventListener('keydown', (event) => {
       if (model.position.y-0.5 <= groundLevel + 0.51) {
         model.velocity.y = 0.3;
       }
+      break;
+    case 'Escape':
+      togglePause();
       break;
   }
 });
@@ -159,16 +262,41 @@ function boxCollision(box1, box2) {
 
 
 let rotationSpeed=0;
+// Lane boundary detection
+function isPlayerInLane() {
+  // Calculate lane boundaries
+  const laneMinX = ground.position.x - (ground.geometry.parameters.width / 2);
+  const laneMaxX = ground.position.x + (ground.geometry.parameters.width / 2);
+
+  // Calculate player boundaries
+  const radius = model.scale.x / 2;
+  const playerMinX = model.position.x - radius;
+  const playerMaxX = model.position.x + radius;
+
+  // Check if player is within lane
+  return playerMinX >= laneMinX && playerMaxX <= laneMaxX;
+}
+
+const clock = new THREE.Clock();
 
 // Animation loop
 function animate() {
+  // If paused, exit animate function
+  if (isPaused) {
+    requestAnimationFrame(animate);
+    return;
+  }
+
+  groundMaterial.uniforms.iTime.value = clock.getElapsedTime();
+
+
   const animationId = requestAnimationFrame(animate);
 
   // Apply gravity
   // cube.velocity.y += gravity;
   // cube.position.y += cube.velocity.y;
 
-  
+
 
   // Ground collision
   // if (cube.position.y - 0.5 <= groundLevel) {
@@ -176,8 +304,7 @@ function animate() {
   //   cube.velocity.y = 0;
   // }
   const moveSpeed = 0.1;
-  if (model)
-  {    
+  if (model) {
     model.velocity.y += gravity;
     model.position.y += model.velocity.y;
     if (model.position.y - 1  <= groundLevel) {
@@ -189,16 +316,16 @@ function animate() {
     if (keys.w) model.position.z -= moveSpeed;
     if (keys.s) model.position.z += moveSpeed;
   }
-  
+
 
   // Player movement
- 
+
   // if (keys.a) cube.position.x -= moveSpeed;
   // if (keys.d) cube.position.x += moveSpeed;
   // if (keys.w) cube.position.z -= moveSpeed;
   // if (keys.s) cube.position.z += moveSpeed;
 
-  
+
 
   // Enemy spawning
   if (frames % spawnRate === 0) {
@@ -228,10 +355,10 @@ function animate() {
     //   alert('Game Over!');
     // }
     if (model)
-    if (boxCollision(model, enemy)) {
-      cancelAnimationFrame(animationId);
-      alert('Game Over!');
-    }
+      if (boxCollision(model, enemy)) {
+        cancelAnimationFrame(animationId);
+        alert('Game Over!');
+      }
 
     // Remove off-screen enemies
     if (enemy.position.z > 10) {
@@ -257,6 +384,17 @@ function animate() {
     }
     model.rotation.y += rotationSpeed;
   }
+  // Game over if player not on lane
+  if (model) {
+    if (!isPlayerInLane()) {
+      cancelAnimationFrame(animationId);
+      alert('Game Over!');
+    }
+
+  }
+
+
+  updateScore();
 
 
   renderer.render(scene, camera);
