@@ -445,6 +445,7 @@ const clock = new THREE.Clock();
 // ------------ Powerup: Shield ------------
 let hasShield = false;
 let isInvulnerable = false;
+let shieldSphere = null;
 
 let shieldPowerUps = [];
 const shieldSpawnRate = 1500;
@@ -619,6 +620,11 @@ function animate() {
   groundMaterial.uniforms.iTime.value = clock.getElapsedTime();
   const animationId = requestAnimationFrame(animate);
 
+  // Shield
+  if (shieldSphere && model) {
+    shieldSphere.position.copy(model.position);
+  }
+
   // Raygun
   if (frames % raygunSpawnRate === 0) {
     spawnRaygunPowerUp();
@@ -732,6 +738,21 @@ function animate() {
       console.log("Shield acquired!");
     }
 
+    // Shield sphere
+    if (!shieldSphere) {
+      const shieldSphereGeometry = new THREE.SphereGeometry(1.0, 32, 32); 
+      const shieldSphereMaterial = new THREE.MeshStandardMaterial({
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.5,
+        emissive: 0x00ffff,
+        emissiveIntensity: 0.3
+      });
+      shieldSphere = new THREE.Mesh(shieldSphereGeometry, shieldSphereMaterial);
+      shieldSphere.position.copy(model.position);
+      scene.add(shieldSphere);
+    }
+
     // Remove off-screen shield power-ups
     if (shield.position.z > 10) {
       scene.remove(shield);
@@ -751,11 +772,15 @@ function animate() {
           hasShield = false;
           isInvulnerable = true;
           console.log("Shield broken! Player is invulnerable for 1 second.");
+          // Break shield sphere
+          if (shieldSphere) {
+            scene.remove(shieldSphere);
+            shieldSphere = null;
+          }
           setTimeout(() => {
             isInvulnerable = false;
             console.log("Invulnerability worn off.");
           }, 1000);
-          
           // Remove the enemy that broke the shield
           scene.remove(enemy);
           enemies.splice(index, 1);
