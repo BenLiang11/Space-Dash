@@ -303,6 +303,7 @@ function replayGame() {
   });
   raygunPowerUps = [];
   hasShield = false;
+  shieldSphere = null;
   isInvulnerable = false;
   hasRaygun = false;
   isTimeStopped = false;
@@ -739,7 +740,7 @@ function animate() {
     }
 
     // Shield sphere
-    if (!shieldSphere) {
+    if (!shieldSphere && hasShield) {
       const shieldSphereGeometry = new THREE.SphereGeometry(1.0, 32, 32); 
       const shieldSphereMaterial = new THREE.MeshStandardMaterial({
         color: 0x00ffff,
