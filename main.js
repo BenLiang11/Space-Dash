@@ -498,6 +498,11 @@ function animate() {
     // const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
     // const enemyMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
 
+    const lavabasecolor = loader.load("textures/Lava_004_COLOR.jpg");
+    const lavanormalMap = loader.load("textures/Lava_004_NORM.jpg");
+    const lavaheightMap = loader.load("textures/Lava_004_DISP.png");
+    const lavaroughnessMap = loader.load("textures/Lava_004_ROUGH.jpg");
+    const lavaambientOcclusionMap = loader.load("textures/Lava_004_OCC.jpg");
 
     const enemyType = Math.floor(Math.random() * 3);
 
@@ -508,25 +513,11 @@ function animate() {
   switch (enemyType) {
     case 0: // Box enemy
       enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
-      enemyMaterial = new THREE.ShaderMaterial({
-        vertexShader: enemyVertexShader,
-        fragmentShader: enemyFragmentShader,
-        uniforms: {
-          color: { value: new THREE.Color(0x8eecf5) }, 
-          shininess: { value: 64 }, // Shininess factor
-        },
-      });
+      enemyMaterial = new THREE.MeshStandardMaterial({ color: 0x8eecf5, map: lavabasecolor, normalMap: lavanormalMap});
       break;
     case 1: // Sphere enemy (larger radius)
-      enemyGeometry = new THREE.SphereGeometry(1, 4, 2);
-      enemyMaterial = new THREE.ShaderMaterial({
-        vertexShader: enemyVertexShader,
-        fragmentShader: enemyFragmentShader,
-        uniforms: {
-          color: { value: new THREE.Color(0xdcccff) }, // Green color
-          shininess: { value: 64 }, // Shininess factor
-        },
-      });
+      enemyGeometry = new THREE.SphereGeometry(0.75, 64, 64);
+      enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xdcccff, map: lavabasecolor, normalMap: lavanormalMap, displacementMap: lavaheightMap, displacementScale: 0.5, roughnessMap: lavaroughnessMap, roughness: 0.5, aoMap: lavaambientOcclusionMap });
       break;
     case 2: // Sphere enemy (smaller radius)
       enemyGeometry = new THREE.SphereGeometry(0.5,8, 8);
@@ -546,7 +537,7 @@ function animate() {
     enemy.position.set(
       (Math.random() - 0.5) * 10,
       groundLevel + 0.5,
-      -15
+      -20
     );
     enemy.velocity = new THREE.Vector3(0, 0, 0.05);
     enemy.castShadow = true;
