@@ -7,6 +7,16 @@
       body {
         margin: 0;
       }
+      #flashlightOverlay {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        bottom: 20px;
+        left: 20px;
+        cursor: pointer;
+        display: none;
+        z-index: 9999;
+      }
       #laserOverlay {
       position: absolute;
       top: 0;
@@ -41,6 +51,7 @@
   </head>
   <body>
     <div id="laserOverlay"></div>
+    <img id="flashlightOverlay" src="images/flashlight.png" alt="Flashlight Icon" />
     <script type="module" src="/main.js"></script>
   </body>
 </html>

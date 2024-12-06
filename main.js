@@ -17,6 +17,7 @@ camera.position.set(0, 5, 10);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true; // Enable shadows
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 document.body.appendChild(renderer.domElement);
 
@@ -247,6 +248,7 @@ function startGame() {
   // Remove the start menu
   startMenuOverlay.style.display = 'none';
   scoreOverlay.style.display = 'flex';
+  flashlightOverlay.style.display = 'block';
   // Start the game loop
   gameStarted = true;
   animate();
@@ -357,6 +359,66 @@ window.addEventListener('keyup', (event) => {
       break;
   }
 });
+
+// ------------ Flashlight ------------
+const flashlightOverlay = document.getElementById('flashlightOverlay');
+
+// Spotlight as the flashlight
+const flashlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 8, 0.5, 2);
+flashlight.castShadow = true;
+flashlight.visible = false; // Off initially
+scene.add(flashlight);
+
+const flashlightTarget = new THREE.Object3D();
+scene.add(flashlightTarget);
+flashlight.target = flashlightTarget;
+
+// Create a cone geometry to visualize the flashlight beam
+// Adjust height and radius to your liking
+const beamGeometry = new THREE.ConeGeometry(3, 5, 32, 1, true);
+const beamMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffe0e0,
+  transparent: true,
+  opacity: 0.5,
+  side: THREE.DoubleSide,
+  blending: THREE.AdditiveBlending,
+});
+const flashlightBeam = new THREE.Mesh(beamGeometry, beamMaterial);
+flashlightBeam.visible = false; // Only visible when flashlight is on
+scene.add(flashlightBeam);
+flashlightBeam.rotation.x = -Math.PI / 2;
+
+// Toggle flashlight on icon click
+flashlightOverlay.addEventListener('click', () => {
+  flashlight.visible = !flashlight.visible;
+  flashlightBeam.visible = flashlight.visible;
+  console.log("Flashlight toggled:", flashlight.visible);
+});
+
+
+function updateFlashlight() {
+  if (!model) return;
+  
+  // Position flashlight at player's position
+  flashlight.position.copy(model.position);
+  flashlight.position.y += 0.5; // slightly above ground level
+  // Assume player faces down the negative Z axis.
+  const forward = new THREE.Vector3(0, -1, 0);
+  forward.applyQuaternion(model.quaternion);
+  
+  // Set flashlight target ahead of player
+  const targetPos = new THREE.Vector3().copy(model.position).add(forward.setLength(10));
+  flashlightTarget.position.copy(targetPos);
+
+  // Position and orient the beam
+  flashlightBeam.position.copy(model.position);
+  flashlightBeam.position.y += 0.5;
+  flashlightBeam.position.z -= 2;
+  
+  // Orient the beam along forward vector
+  // The cone by default points along -Y, so rotate to point along forward
+  flashlightBeam.lookAt(targetPos);
+}
 
 // ------------ Enemies ------------
 let enemies = [];
@@ -838,6 +900,7 @@ function animate() {
   }
 
   updateScore();
+  updateFlashlight();
 
   renderer.render(scene, camera);
 
