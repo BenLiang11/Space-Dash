@@ -207,7 +207,7 @@ gameOverOverlay.style.fontFamily = 'Orbitron, sans-serif';
 gameOverOverlay.innerHTML = `
   <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh; text-align: center; font-family: Orbitron, sans-serif; padding: 20px;">
     <div style="flex-grow: 0; margin-top: 20px;">
-      <p style="font-size: 60px; margin: 0;">GAME OVER</p>
+      <p style="font-size: 60px; margin: 0;">YOU'VE BEEN CAUGHT!</p>
       <p id="finalScore" style="font-size: 24px; margin: 10px 0 20px;"></p>
     </div>
     
