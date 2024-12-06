@@ -207,7 +207,7 @@ gameOverOverlay.style.fontFamily = 'Orbitron, sans-serif';
 gameOverOverlay.innerHTML = `
   <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh; text-align: center; font-family: Orbitron, sans-serif; padding: 20px;">
     <div style="flex-grow: 0; margin-top: 20px;">
-      <p style="font-size: 60px; margin: 0;">GAME OVER</p>
+      <p style="font-size: 60px; margin: 0;">YOU'VE BEEN CAUGHT!</p>
       <p id="finalScore" style="font-size: 24px; margin: 10px 0 20px;"></p>
     </div>
     
@@ -277,6 +277,8 @@ function replayGame() {
   frames = 0;
   scoreOverlay.style.display = 'flex';
   gameOverOverlay.style.display = 'none';
+  raygunOverlay.style.display = 'none';
+  laserOverlay.style.display = 'none';
 
   // reset player position and direction
   model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
@@ -296,8 +298,14 @@ function replayGame() {
     scene.remove(shield);
   });
   shieldPowerUps = [];
+  raygunPowerUps.forEach(raygun => {
+    scene.remove(raygun);
+  });
+  raygunPowerUps = [];
   hasShield = false;
   isInvulnerable = false;
+  hasRaygun = false;
+  isTimeStopped = false;
 
   // restart animation
   animate();
@@ -533,7 +541,7 @@ function spawnRaygunPowerUp() {
 }
 
 // Array to track the raygun powerups
-const raygunPowerUps = [];
+let raygunPowerUps = [];
 const raygunSpawnRate = 3000; // Spawn a raygun powerup every 3000 frames or so
 
 // Function to check collision with raygun powerup
