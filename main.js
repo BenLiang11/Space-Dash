@@ -161,7 +161,7 @@ pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
 pausedOverlay.innerText = 'GAME PAUSED';
 document.body.appendChild(pausedOverlay);
 
-// Create the start menu overlay
+// Start menu overlay
 const startMenuOverlay = document.createElement('div');
 startMenuOverlay.style.position = 'absolute';
 startMenuOverlay.style.top = '0';
@@ -190,6 +190,35 @@ startMenuOverlay.innerHTML = `
 `;
 document.body.appendChild(startMenuOverlay);
 
+// Game over overlay
+const gameOverOverlay = document.createElement('div');
+gameOverOverlay.style.position = 'absolute';
+gameOverOverlay.style.top = '0';
+gameOverOverlay.style.left = '0';
+gameOverOverlay.style.width = '100%';
+gameOverOverlay.style.height = '100%';
+gameOverOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+gameOverOverlay.style.color = 'white';
+gameOverOverlay.style.fontSize = '50px';
+gameOverOverlay.style.display = 'none';
+gameOverOverlay.style.justifyContent = 'center';
+gameOverOverlay.style.alignItems = 'center';
+gameOverOverlay.style.fontFamily = 'Orbitron, sans-serif';
+gameOverOverlay.innerHTML = `
+  <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh; text-align: center; font-family: Orbitron, sans-serif; padding: 20px;">
+    <div style="flex-grow: 0; margin-top: 20px;">
+      <p style="font-size: 60px; margin: 0;">GAME OVER</p>
+      <p id="finalScore" style="font-size: 24px; margin: 10px 0 20px;"></p>
+    </div>
+    
+    <div style="flex-grow: 1;"></div> <!-- Empty space to push the button to the bottom -->
+    
+    <button id="replayButton" style="font-family: 'Orbitron'; font-size: 24px; padding: 15px 30px; background-color: transparent; color: white; border: 2px solid white; border-radius: 10px; cursor: pointer; margin: 10px auto 20px; display: block; width: 400px; height: 60px;">
+      Play Again
+    </button>    
+  </div>
+`;
+document.body.appendChild(gameOverOverlay);
 // ------------ Menu ------------
 let isPaused = false;
 let gameStarted = false;
@@ -213,6 +242,7 @@ startGameButton.addEventListener('click', () => {
   startGame();
 });
 
+// Start game function
 function startGame() {
   // Remove the start menu
   startMenuOverlay.style.display = 'none';
@@ -225,6 +255,52 @@ function startGame() {
 // Score update function (based on how many frames passed)
 function updateScore() {
   scoreOverlay.innerText = 'Score: ' + Math.floor(frames/20);
+}
+
+// Game over display function
+function handleGameOver() {
+  scoreOverlay.style.display = 'none';
+  gameOverOverlay.style.display = 'flex';
+  const finalScore = document.getElementById('finalScore');
+  finalScore.innerText = 'Score: ' + Math.floor(frames/20);
+}
+
+// Handle start game button click
+const replayButton = document.getElementById('replayButton');
+replayButton.addEventListener('click', () => {
+  replayGame();
+});
+
+// Restart game function
+function replayGame() {
+  // reset score and display
+  frames = 0;
+  scoreOverlay.style.display = 'flex';
+  gameOverOverlay.style.display = 'none';
+
+  // reset player position and direction
+  model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
+  model.rotation.y = Math.PI;
+  model.position.set(0, 0.5, 0); // Set the position of the model
+  model.castShadow = true;
+  model.receiveShadow = true;
+  model.velocity = new THREE.Vector3(0, 0, 0);
+
+  // reset other game variables
+  isFallingOffEdge = false;
+  enemies.forEach(enemy => {
+    scene.remove(enemy);
+  });
+  enemies = [];
+  shieldPowerUps.forEach(shield => {
+    scene.remove(shield);
+  });
+  shieldPowerUps = [];
+  hasShield = false;
+  isInvulnerable = false;
+
+  // restart animation
+  animate();
 }
 
 // Key press tracking
@@ -274,7 +350,7 @@ window.addEventListener('keyup', (event) => {
 });
 
 // ------------ Enemies ------------
-const enemies = [];
+let enemies = [];
 let frames = 0;
 let spawnRate = 200;
 
@@ -362,7 +438,7 @@ const clock = new THREE.Clock();
 let hasShield = false;
 let isInvulnerable = false;
 
-const shieldPowerUps = [];
+let shieldPowerUps = [];
 const shieldSpawnRate = 1500;
 
 function spawnShieldPowerUp() {
@@ -525,7 +601,7 @@ function animate() {
         } else if (!isInvulnerable) {
           // Normal game over behavior if no shield and not invulnerable
           cancelAnimationFrame(animationId);
-          alert('Game Over!');
+          handleGameOver();
         } 
         // If isInvulnerable, just ignore the collisionds
       }
@@ -571,7 +647,7 @@ function animate() {
 
   if (isFallingOffEdge && model.position.y < -50) {
     cancelAnimationFrame(animationId);
-    alert('Game Over! You fell off the edge.');
+    handleGameOver();
   }
 
   updateScore();
