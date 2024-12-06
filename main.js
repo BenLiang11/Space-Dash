@@ -450,18 +450,14 @@ let shieldPowerUps = [];
 const shieldSpawnRate = 1500;
 
 function spawnShieldPowerUp() {
+  const position = getNonOverlappingPosition(ground.geometry.parameters.width, -15);
+  if (position === null) return;
+
   const shieldGeometry = new THREE.SphereGeometry(0.5, 16, 16); 
   const shieldMaterial = new THREE.MeshStandardMaterial({ color: 'cyan', emissive: 'blue', emissiveIntensity: 0.5 });
   const shieldPowerUp = new THREE.Mesh(shieldGeometry, shieldMaterial);
   
-  // Position the shield power-up at a random x within the lane, and slightly above ground
-  const laneWidth = ground.geometry.parameters.width; 
-  shieldPowerUp.position.set(
-    (Math.random() - 0.5) * laneWidth, 
-    groundLevel + 1, 
-    -15 // spawn ahead of the player
-  );
-  
+  shieldPowerUp.position.set(position.x, position.y, position.z);
   shieldPowerUp.velocity = new THREE.Vector3(0, 0, 0.05);
   shieldPowerUp.castShadow = true;
 
@@ -524,17 +520,14 @@ raygunOverlay.addEventListener('click', () => {
 
 // Function to spawn raygun powerup
 function spawnRaygunPowerUp() {
+  const position = getNonOverlappingPosition(ground.geometry.parameters.width, -15);
+  if (position === null) return;
+
   const gunGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
   const gunMaterial = new THREE.MeshStandardMaterial({ color: 'yellow' });
   const raygunPowerUp = new THREE.Mesh(gunGeometry, gunMaterial);
 
-  const laneWidth = ground.geometry.parameters.width;
-  raygunPowerUp.position.set(
-    (Math.random() - 0.5) * laneWidth,
-    groundLevel + 1,
-    -15
-  );
-  
+  raygunPowerUp.position.set(position.x, position.y, position.z);
   raygunPowerUp.velocity = new THREE.Vector3(0, 0, 0.05);
   scene.add(raygunPowerUp);
   raygunPowerUps.push(raygunPowerUp);
@@ -568,7 +561,7 @@ window.addEventListener('click', (event) => {
       if (enemyIndex > -1) {
         scene.remove(hitEnemy);
         enemies.splice(enemyIndex, 1);
-        // Laser sound
+        
         shootSound.currentTime = 0; 
         shootSound.play();
         console.log("Enemy zapped!");
@@ -576,6 +569,43 @@ window.addEventListener('click', (event) => {
     }
   }
 });
+
+// ------------ Prevent Overlap ------------
+const spawnRadius = 0.75; 
+
+// Checks if a potential spawn position overlaps with any existing objects
+function isOverlapping(x, y, z) {
+  const allObjects = [...enemies, ...shieldPowerUps, ...raygunPowerUps];
+
+  for (const obj of allObjects) {
+    const dx = obj.position.x - x;
+    const dy = obj.position.y - y;
+    const dz = obj.position.z - z;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    // If objects are too close, consider it overlapping
+    if (dist < spawnRadius * 2) return true;
+  }
+
+  return false;
+}
+
+// Tries multiple times to find a random, non-overlapping position
+function getNonOverlappingPosition(laneWidth, zPos = -15, maxAttempts = 50) {
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    const x = (Math.random() - 0.5) * laneWidth;
+    const y = groundLevel + 1;
+    
+    if (!isOverlapping(x, y, zPos)) {
+      return { x, y, z: zPos };
+    }
+
+    attempts++;
+  }
+  // If no suitable position found, you could return null and skip spawning
+  return null;
+}
 
 
 // ------------ Animation loop ------------
@@ -642,53 +672,49 @@ function animate() {
     // const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
     // const enemyMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
 
-    const lavabasecolor = loader.load("textures/Lava_004_COLOR.jpg");
-    const lavanormalMap = loader.load("textures/Lava_004_NORM.jpg");
-    const lavaheightMap = loader.load("textures/Lava_004_DISP.png");
-    const lavaroughnessMap = loader.load("textures/Lava_004_ROUGH.jpg");
-    const lavaambientOcclusionMap = loader.load("textures/Lava_004_OCC.jpg");
+    const position = getNonOverlappingPosition(ground.geometry.parameters.width, -20);
+    if (position !== null) {
+      let enemyGeometry, enemyMaterial;
+      const enemyType = Math.floor(Math.random() * 3);
+      
+      const lavabasecolor = loader.load("textures/Lava_004_COLOR.jpg");
+      const lavanormalMap = loader.load("textures/Lava_004_NORM.jpg");
+      const lavaheightMap = loader.load("textures/Lava_004_DISP.png");
+      const lavaroughnessMap = loader.load("textures/Lava_004_ROUGH.jpg");
+      const lavaambientOcclusionMap = loader.load("textures/Lava_004_OCC.jpg");
+    
+    // Define colors for different enemy types
+    switch (enemyType) {
+      case 0: // Box enemy
+        enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0x8eecf5, map: lavabasecolor, normalMap: lavanormalMap});
+        break;
+      case 1: // Sphere enemy (larger radius)
+        enemyGeometry = new THREE.SphereGeometry(0.75, 64, 64);
+        enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xdcccff, map: lavabasecolor, normalMap: lavanormalMap, displacementMap: lavaheightMap, displacementScale: 0.5, roughnessMap: lavaroughnessMap, roughness: 0.5, aoMap: lavaambientOcclusionMap });
+        break;
+      case 2: // Sphere enemy (smaller radius)
+        enemyGeometry = new THREE.SphereGeometry(0.5,8, 8);
+        enemyMaterial = new THREE.ShaderMaterial({
+          vertexShader: enemyVertexShader,
+          fragmentShader: enemyFragmentShader,
+          uniforms: {
+            color: { value: new THREE.Color(0xddf0ff) }, // Blue color
+            shininess: { value: 64 }, // Shininess factor
+          },
+        });
+        break;
+    }
 
-    const enemyType = Math.floor(Math.random() * 3);
+      const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
 
-    let enemyGeometry;
-  let enemyMaterial;
-  
-  // Define colors for different enemy types
-  switch (enemyType) {
-    case 0: // Box enemy
-      enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
-      enemyMaterial = new THREE.MeshStandardMaterial({ color: 0x8eecf5, map: lavabasecolor, normalMap: lavanormalMap});
-      break;
-    case 1: // Sphere enemy (larger radius)
-      enemyGeometry = new THREE.SphereGeometry(0.75, 64, 64);
-      enemyMaterial = new THREE.MeshStandardMaterial({ color: 0xdcccff, map: lavabasecolor, normalMap: lavanormalMap, displacementMap: lavaheightMap, displacementScale: 0.5, roughnessMap: lavaroughnessMap, roughness: 0.5, aoMap: lavaambientOcclusionMap });
-      break;
-    case 2: // Sphere enemy (smaller radius)
-      enemyGeometry = new THREE.SphereGeometry(0.5,8, 8);
-      enemyMaterial = new THREE.ShaderMaterial({
-        vertexShader: enemyVertexShader,
-        fragmentShader: enemyFragmentShader,
-        uniforms: {
-          color: { value: new THREE.Color(0xddf0ff) }, // Blue color
-          shininess: { value: 64 }, // Shininess factor
-        },
-      });
-      break;
+      enemy.position.set(position.x, position.y, position.z);
+      enemy.velocity = new THREE.Vector3(0, 0, 0.05);
+      enemy.castShadow = true;
+      scene.add(enemy);
+      enemies.push(enemy);
+    }
   }
-
-    const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
-
-    enemy.position.set(
-      (Math.random() - 0.5) * 10,
-      groundLevel + 0.5,
-      -20
-    );
-    enemy.velocity = new THREE.Vector3(0, 0, 0.05);
-    enemy.castShadow = true;
-    scene.add(enemy);
-    enemies.push(enemy);
-  }
-
   // Power up spawning
   if (frames % shieldSpawnRate === 0) {
     spawnShieldPowerUp();
