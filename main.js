@@ -434,7 +434,7 @@ const enemyFragmentShader = `
 
 const clock = new THREE.Clock();
 
-// ------------ Powerups ------------
+// ------------ Powerup: Shield ------------
 let hasShield = false;
 let isInvulnerable = false;
 
@@ -468,6 +468,98 @@ function playerCollidesWithShield(shield) {
   return xCollide && yCollide && zCollide;
 }
 
+// ------------ Powerup: Raygun ------------
+// Variables to track raygun state
+let hasRaygun = false;
+let isTimeStopped = false;
+let timeStopStart = 0;
+const timeStopDuration = 5000; // 5 seconds
+
+// We'll need a raycaster and a vector2 for obstacle-clicking
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// Create the raygun UI element, initially hidden
+const raygunOverlay = document.createElement('img');
+raygunOverlay.src = 'images/raygun.png'; // Use your own icon path
+raygunOverlay.style.position = 'absolute';
+raygunOverlay.style.width = '80px';
+raygunOverlay.style.height = '80px';
+raygunOverlay.style.bottom = '20px';
+raygunOverlay.style.right = '20px';
+raygunOverlay.style.cursor = 'pointer';
+raygunOverlay.style.display = 'none'; // Hidden until we have the raygun
+document.body.appendChild(raygunOverlay);
+
+const shootSound = new Audio('sounds/raygun_laser.mp3'); // Update the audio file path as needed
+shootSound.volume = 0.2; // Adjust volume if desired
+
+// When raygunOverlay is clicked, if we have the raygun and time isn't stopped yet, stop time
+raygunOverlay.addEventListener('click', () => {
+  if (hasRaygun && !isTimeStopped) {
+    isTimeStopped = true;
+    timeStopStart = performance.now();
+    raygunOverlay.style.display = 'none';
+    console.log("Time stopped! Click enemies to zap them.");
+  }
+});
+
+// Function to spawn raygun powerup
+function spawnRaygunPowerUp() {
+  const gunGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+  const gunMaterial = new THREE.MeshStandardMaterial({ color: 'yellow' });
+  const raygunPowerUp = new THREE.Mesh(gunGeometry, gunMaterial);
+
+  const laneWidth = ground.geometry.parameters.width;
+  raygunPowerUp.position.set(
+    (Math.random() - 0.5) * laneWidth,
+    groundLevel + 1,
+    -15
+  );
+  
+  raygunPowerUp.velocity = new THREE.Vector3(0, 0, 0.05);
+  scene.add(raygunPowerUp);
+  raygunPowerUps.push(raygunPowerUp);
+}
+
+// Array to track the raygun powerups
+const raygunPowerUps = [];
+const raygunSpawnRate = 3000; // Spawn a raygun powerup every 3000 frames or so
+
+// Function to check collision with raygun powerup
+function playerCollidesWithRaygun(rg) {
+  const xCollide = Math.abs(model.position.x - rg.position.x) < 1;
+  const yCollide = Math.abs(model.position.y - rg.position.y) < 1;
+  const zCollide = Math.abs(model.position.z - rg.position.z) < 1;
+  return xCollide && yCollide && zCollide;
+}
+
+// On mouse click in the scene, if time is stopped, try to zap enemies
+window.addEventListener('click', (event) => {
+  if (isTimeStopped) {
+    // Convert mouse coordinates to normalized device coordinates
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(enemies);
+    if (intersects.length > 0) {
+      // Zap the first enemy hit
+      const hitEnemy = intersects[0].object;
+      const enemyIndex = enemies.indexOf(hitEnemy);
+      if (enemyIndex > -1) {
+        scene.remove(hitEnemy);
+        enemies.splice(enemyIndex, 1);
+        // Laser sound
+        shootSound.currentTime = 0; 
+        shootSound.play();
+        console.log("Enemy zapped!");
+      }
+    }
+  }
+});
+
+
 // ------------ Animation loop ------------
 function animate() {
   // If paused, exit animate function
@@ -478,6 +570,38 @@ function animate() {
 
   groundMaterial.uniforms.iTime.value = clock.getElapsedTime();
   const animationId = requestAnimationFrame(animate);
+
+  // Raygun
+  if (frames % raygunSpawnRate === 0) {
+    spawnRaygunPowerUp();
+  }
+
+  // Update raygun powerups
+  raygunPowerUps.forEach((rg, index) => {
+    rg.position.z += rg.velocity.z;
+
+    if (model && playerCollidesWithRaygun(rg)) {
+      hasRaygun = true;
+      console.log("Raygun acquired! Click the raygun icon to stop time.");
+      raygunOverlay.style.display = 'block'; // Show raygun icon
+      scene.remove(rg);
+      raygunPowerUps.splice(index, 1);
+    }
+
+    if (rg.position.z > 10) {
+      scene.remove(rg);
+      raygunPowerUps.splice(index, 1);
+    }
+  });
+
+  // If time is stopped, check how long it has been
+  if (isTimeStopped) {
+    const elapsed = performance.now() - timeStopStart;
+    if (elapsed > timeStopDuration) {
+      isTimeStopped = false;
+      console.log("Time resumed!");
+    }
+  }
 
   // Gravity
   const moveSpeed = 0.1;
