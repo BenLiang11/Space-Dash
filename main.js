@@ -45,8 +45,6 @@ loader2.load(
 );
 
 
-
-
 // Camera
 const camera = new THREE.PerspectiveCamera(
   90,
@@ -89,23 +87,23 @@ fragmentShader: `
 
     void main() {
         
-        //float wave = sin(vUv.x * 10.0 + iTime) * 0.5 + 0.6;
-        //float colorFactor = sin(vUv.y * 20.0 - iTime) * 0.5 + 0.5;
-         vec2 distortedUv = vUv;
-        distortedUv.y += sin(distortedUv.x * 10.0 + iTime * 2.0) * 0.1; // Horizontal waves
-        distortedUv.x += sin(distortedUv.y * 15.0 - iTime * 1.5) * 0.05; // Vertical waves
+      //float wave = sin(vUv.x * 10.0 + iTime) * 0.5 + 0.6;
+      //float colorFactor = sin(vUv.y * 20.0 - iTime) * 0.5 + 0.5;
+        vec2 distortedUv = vUv;
+      distortedUv.y += sin(distortedUv.x * 10.0 + iTime * 2.0) * 0.1; // Horizontal waves
+      distortedUv.x += sin(distortedUv.y * 15.0 - iTime * 1.5) * 0.05; // Vertical waves
 
-        // Create a wave-like pattern using sine functions
-        float wave = sin(distortedUv.x * 10.0 + iTime) * 0.5 + 0.6;
-        float colorFactor = sin(distortedUv.y * 20.0 - iTime) * 0.5 + 0.5;
+      // Create a wave-like pattern using sine functions
+      float wave = sin(distortedUv.x * 10.0 + iTime) * 0.5 + 0.6;
+      float colorFactor = sin(distortedUv.y * 20.0 - iTime) * 0.5 + 0.5;
 
 
-        vec3 baseColor = vec3(0.05, 0.1, 0.1); // Minimum brightness color
-       vec3 auroraColor = mix(vec3(0.0, 0.8, 0.5), vec3(0.3, 0.1, 0.8), colorFactor);
-        vec3 finalColor = mix(baseColor, auroraColor, wave);
-        // Combine wave effect with aurora color
-        //gl_FragColor = vec4(auroraColor * wave, 1.0);
-        gl_FragColor = vec4(finalColor, 1.0);
+      vec3 baseColor = vec3(0.05, 0.1, 0.1); // Minimum brightness color
+      vec3 auroraColor = mix(vec3(0.0, 0.8, 0.5), vec3(0.3, 0.1, 0.8), colorFactor);
+      vec3 finalColor = mix(baseColor, auroraColor, wave);
+      // Combine wave effect with aurora color
+      //gl_FragColor = vec4(auroraColor * wave, 1.0);
+      gl_FragColor = vec4(finalColor, 1.0);
 
 
     }
@@ -194,7 +192,7 @@ function togglePause() {
 
 // Score update function (based on how many frames passed)
 function updateScore() {
-  scoreOverlay.innerText = 'Score: ' + frames;
+  scoreOverlay.innerText = 'Score: ' + Math.floor(frames/20);
 }
 
 // Key press tracking
@@ -249,13 +247,24 @@ let frames = 0;
 let spawnRate = 200;
 
 // Collision detection function
+
+// function boxCollision(box1, box2) {
+//   const xCollide = Math.abs(box1.position.x - box2.position.x) < 1;
+//   const yCollide = Math.abs(box1.position.y - box2.position.y) < 1;
+//   const zCollide = Math.abs(box1.position.z - box2.position.z) < 1;
+//   return xCollide && yCollide && zCollide;
+// }
+
 function boxCollision(box1, box2) {
-  const xCollide = Math.abs(box1.position.x - box2.position.x) < 1;
-  const yCollide = Math.abs(box1.position.y - box2.position.y) < 1;
-  const zCollide = Math.abs(box1.position.z - box2.position.z) < 1;
+  const halfSize1 = box1.scale.x / 2; // Assuming scale.x represents half width
+  const halfSize2 = box2.scale.x / 2;
+
+  const xCollide = Math.abs(box1.position.x - box2.position.x) < (halfSize1 + halfSize2);
+  const yCollide = Math.abs(box1.position.y - box2.position.y) < (halfSize1 + halfSize2);
+  const zCollide = Math.abs(box1.position.z - box2.position.z) < (halfSize1 + halfSize2);
+  
   return xCollide && yCollide && zCollide;
 }
-
 
 
 
@@ -276,6 +285,44 @@ function isPlayerInLane() {
   // Check if player is within lane
   return playerMinX >= laneMinX && playerMaxX <= laneMaxX;
 }
+
+
+
+
+
+
+const enemyVertexShader = `
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * vec4(vPosition, 1.0);
+  }
+`;
+
+const enemyFragmentShader = `
+  uniform vec3 color;
+  uniform float shininess;
+  varying vec3 vNormal;
+  varying vec3 vPosition;
+  
+  void main() {
+    vec3 lightDirection = normalize(vec3(0.5, 0.5, 1.0));
+    float diff = max(dot(vNormal, lightDirection), 0.0);
+    vec3 diffuse = diff * color;
+
+    // Specular highlights
+    vec3 viewDirection = normalize(-vPosition);  // Direction from fragment to camera
+    vec3 reflectDir = reflect(-lightDirection, vNormal);  // Reflection of light direction
+    float spec = pow(max(dot(viewDirection, reflectDir), 0.0), shininess); // Phong specular model
+    vec3 specular = spec * vec3(1.0);  // White specular highlight
+
+    gl_FragColor = vec4(diffuse + specular, 1.0);
+  }
+`;
+
 
 const clock = new THREE.Clock();
 
@@ -331,9 +378,54 @@ function animate() {
   if (frames % spawnRate === 0) {
     if (spawnRate > 20) spawnRate -= 20;
 
-    const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const enemyMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+    // const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+    // const enemyMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
+
+
+    const enemyType = Math.floor(Math.random() * 3);
+
+    let enemyGeometry;
+  let enemyMaterial;
+  
+  // Define colors for different enemy types
+  switch (enemyType) {
+    case 0: // Box enemy
+      enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
+      enemyMaterial = new THREE.ShaderMaterial({
+        vertexShader: enemyVertexShader,
+        fragmentShader: enemyFragmentShader,
+        uniforms: {
+          color: { value: new THREE.Color(0x8eecf5) }, 
+          shininess: { value: 64 }, // Shininess factor
+        },
+      });
+      break;
+    case 1: // Sphere enemy (larger radius)
+      enemyGeometry = new THREE.SphereGeometry(1, 4, 2);
+      enemyMaterial = new THREE.ShaderMaterial({
+        vertexShader: enemyVertexShader,
+        fragmentShader: enemyFragmentShader,
+        uniforms: {
+          color: { value: new THREE.Color(0xdcccff) }, // Green color
+          shininess: { value: 64 }, // Shininess factor
+        },
+      });
+      break;
+    case 2: // Sphere enemy (smaller radius)
+      enemyGeometry = new THREE.SphereGeometry(0.5,8, 8);
+      enemyMaterial = new THREE.ShaderMaterial({
+        vertexShader: enemyVertexShader,
+        fragmentShader: enemyFragmentShader,
+        uniforms: {
+          color: { value: new THREE.Color(0xddf0ff) }, // Blue color
+          shininess: { value: 64 }, // Shininess factor
+        },
+      });
+      break;
+  }
+
     const enemy = new THREE.Mesh(enemyGeometry, enemyMaterial);
+
     enemy.position.set(
       (Math.random() - 0.5) * 10,
       groundLevel + 0.5,
