@@ -494,6 +494,14 @@ document.body.appendChild(raygunOverlay);
 const shootSound = new Audio('sounds/raygun_laser.mp3'); // Update the audio file path as needed
 shootSound.volume = 0.2; // Adjust volume if desired
 
+function activateLaser() {
+  laserOverlay.style.display = 'block';
+}
+
+function deactivateLaser() {
+  laserOverlay.style.display = 'none';
+}
+
 // When raygunOverlay is clicked, if we have the raygun and time isn't stopped yet, stop time
 raygunOverlay.addEventListener('click', () => {
   if (hasRaygun && !isTimeStopped) {
@@ -501,6 +509,8 @@ raygunOverlay.addEventListener('click', () => {
     timeStopStart = performance.now();
     raygunOverlay.style.display = 'none';
     console.log("Time stopped! Click enemies to zap them.");
+
+    activateLaser();
   }
 });
 
@@ -600,6 +610,8 @@ function animate() {
     if (elapsed > timeStopDuration) {
       isTimeStopped = false;
       console.log("Time resumed!");
+
+      deactivateLaser();
     }
   }
 
