@@ -4,16 +4,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const scene = new THREE.Scene();
 
 
-
 //Space background
 const loader = new THREE.TextureLoader();
-loader.load('textures/space.jpg', function (texture) {
+loader.load('textures/space.jpg', function(texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   // texture.repeat.set(2, 2);
   scene.background = texture;
 });
-
 
 // Create a new loader2 instance using GLTFLoader
 const loader2 = new GLTFLoader();
@@ -29,7 +27,7 @@ loader2.load(
     // Optional: adjust the model's scale and position
     model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
     model.rotation.y = Math.PI;
-    model.position.set(0, 0, 0); // Set the position of the model
+    model.position.set(0, 0.5, 0); // Set the position of the model
     model.castShadow = true;
     model.receiveShadow = true;
     model.velocity = new THREE.Vector3(0, 0, 0);
@@ -43,7 +41,6 @@ loader2.load(
     console.error('An error happened while loading the GLTF model:', error);
   }
 );
-
 
 // Camera
 const camera = new THREE.PerspectiveCamera(
@@ -61,12 +58,9 @@ renderer.shadowMap.enabled = true; // Enable shadows
 
 document.body.appendChild(renderer.domElement);
 
-
-
 const controls = new OrbitControls(camera, renderer.domElement)
 
-
-// Ground (lane) setup
+// ------------ Ground (lane) setup ------------
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
 //const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
 const groundMaterial = new THREE.ShaderMaterial({ 
@@ -116,15 +110,6 @@ ground.position.set(0, -2, 0);
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Player cube setup
-// const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-// const cubeMaterial = new THREE.MeshStandardMaterial({ color: '#ae00ff' });
-// const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-// cube.position.set(0, 0, 0);
-// cube.castShadow = true;
-// cube.velocity = new THREE.Vector3(0, 0, 0);
-// scene.add(cube);
-
 // Lighting setup
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(0, 10, 10);
@@ -136,9 +121,6 @@ scene.add(ambientLight);
 // Gravity and ground level
 const gravity = -0.01;
 const groundLevel = ground.position.y;
-
-// Variables for gameplay
-let isPaused = false;
 
 // Imports for overlays
 const googleFontLink = document.createElement('link');
@@ -178,6 +160,10 @@ pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
 pausedOverlay.innerText = 'GAME PAUSED';
 document.body.appendChild(pausedOverlay);
 
+// ------------ Menu ------------
+let isPaused = false;
+let isFallingOffEdge = false;
+
 // Pause function
 function togglePause() {
   isPaused = !isPaused;
@@ -215,8 +201,8 @@ window.addEventListener('keydown', (event) => {
       // if (cube.position.y <= groundLevel + 0.51) {
       //   cube.velocity.y = 0.2;
       // }
-      if (model.position.y-0.5 <= groundLevel + 0.51) {
-        model.velocity.y = 0.3;
+      if (model.position.y- 1.5 <= groundLevel + 0.51) {
+        model.velocity.y = 0.25;
       }
       break;
     case 'Escape':
@@ -241,7 +227,7 @@ window.addEventListener('keyup', (event) => {
   }
 });
 
-// Enemy cubes array
+// ------------ Enemies ------------
 const enemies = [];
 let frames = 0;
 let spawnRate = 200;
@@ -326,7 +312,41 @@ const enemyFragmentShader = `
 
 const clock = new THREE.Clock();
 
-// Animation loop
+// ------------ Powerups ------------
+let hasShield = false;
+let isInvulnerable = false;
+
+const shieldPowerUps = [];
+const shieldSpawnRate = 1500;
+
+function spawnShieldPowerUp() {
+  const shieldGeometry = new THREE.SphereGeometry(0.5, 16, 16); 
+  const shieldMaterial = new THREE.MeshStandardMaterial({ color: 'cyan', emissive: 'blue', emissiveIntensity: 0.5 });
+  const shieldPowerUp = new THREE.Mesh(shieldGeometry, shieldMaterial);
+  
+  // Position the shield power-up at a random x within the lane, and slightly above ground
+  const laneWidth = ground.geometry.parameters.width; 
+  shieldPowerUp.position.set(
+    (Math.random() - 0.5) * laneWidth, 
+    groundLevel + 1, 
+    -15 // spawn ahead of the player
+  );
+  
+  shieldPowerUp.velocity = new THREE.Vector3(0, 0, 0.05);
+  shieldPowerUp.castShadow = true;
+
+  scene.add(shieldPowerUp);
+  shieldPowerUps.push(shieldPowerUp);
+}
+
+function playerCollidesWithShield(shield) {
+  const xCollide = Math.abs(model.position.x - shield.position.x) < 1;
+  const yCollide = Math.abs(model.position.y - shield.position.y) < 1;
+  const zCollide = Math.abs(model.position.z - shield.position.z) < 1;
+  return xCollide && yCollide && zCollide;
+}
+
+// ------------ Animation loop ------------
 function animate() {
   // If paused, exit animate function
   if (isPaused) {
@@ -335,44 +355,19 @@ function animate() {
   }
 
   groundMaterial.uniforms.iTime.value = clock.getElapsedTime();
-
-
   const animationId = requestAnimationFrame(animate);
 
-  // Apply gravity
-  // cube.velocity.y += gravity;
-  // cube.position.y += cube.velocity.y;
-
-
-
-  // Ground collision
-  // if (cube.position.y - 0.5 <= groundLevel) {
-  //   cube.position.y = groundLevel + 0.5;
-  //   cube.velocity.y = 0;
-  // }
+  // Gravity
   const moveSpeed = 0.1;
   if (model) {
     model.velocity.y += gravity;
     model.position.y += model.velocity.y;
-    if (model.position.y - 1  <= groundLevel) {
-      model.position.y = groundLevel + 1;
-      model.velocity.y = 0;
-    }
+    
     if (keys.a) model.position.x -= moveSpeed;
     if (keys.d) model.position.x += moveSpeed;
     if (keys.w) model.position.z -= moveSpeed;
     if (keys.s) model.position.z += moveSpeed;
   }
-
-
-  // Player movement
-
-  // if (keys.a) cube.position.x -= moveSpeed;
-  // if (keys.d) cube.position.x += moveSpeed;
-  // if (keys.w) cube.position.z -= moveSpeed;
-  // if (keys.s) cube.position.z += moveSpeed;
-
-
 
   // Enemy spawning
   if (frames % spawnRate === 0) {
@@ -437,20 +432,58 @@ function animate() {
     enemies.push(enemy);
   }
 
+  // Power up spawning
+  if (frames % shieldSpawnRate === 0) {
+    spawnShieldPowerUp();
+  }
+
+  // Update shield power-ups
+  shieldPowerUps.forEach((shield, index) => {
+    shield.position.z += shield.velocity.z;
+
+    // Check collision with player
+    if (model && playerCollidesWithShield(shield)) {
+      hasShield = true;
+      scene.remove(shield);
+      shieldPowerUps.splice(index, 1);
+      console.log("Shield acquired!");
+    }
+
+    // Remove off-screen shield power-ups
+    if (shield.position.z > 10) {
+      scene.remove(shield);
+      shieldPowerUps.splice(index, 1);
+    }
+  });
+
   // Update enemies
   enemies.forEach((enemy, index) => {
     enemy.position.z += enemy.velocity.z;
 
-    // Collision with player
-    // if (boxCollision(cube, enemy)) {
-    //   cancelAnimationFrame(animationId);
-    //   alert('Game Over!');
-    // }
-    if (model)
+    if (model) {
+      // Collision with player
       if (boxCollision(model, enemy)) {
-        cancelAnimationFrame(animationId);
-        alert('Game Over!');
+        if (hasShield) {
+          // Shield breaks, player becomes invulnerable for 1 second
+          hasShield = false;
+          isInvulnerable = true;
+          console.log("Shield broken! Player is invulnerable for 1 second.");
+          setTimeout(() => {
+            isInvulnerable = false;
+            console.log("Invulnerability worn off.");
+          }, 1000);
+          
+          // Remove the enemy that broke the shield
+          scene.remove(enemy);
+          enemies.splice(index, 1);
+        } else if (!isInvulnerable) {
+          // Normal game over behavior if no shield and not invulnerable
+          cancelAnimationFrame(animationId);
+          alert('Game Over!');
+        } 
+        // If isInvulnerable, just ignore the collisionds
       }
+    }
 
     // Remove off-screen enemies
     if (enemy.position.z > 10) {
@@ -476,18 +509,26 @@ function animate() {
     }
     model.rotation.y += rotationSpeed;
   }
-  // Game over if player not on lane
-  if (model) {
-    if (!isPlayerInLane()) {
-      cancelAnimationFrame(animationId);
-      alert('Game Over!');
-    }
 
+  // If player is not in lane
+  if (model && !isPlayerInLane()) {
+    isFallingOffEdge = true;
   }
 
+  if (!isFallingOffEdge) {
+    // Apply normal ground collision if the player is NOT falling off the edge
+    if (model.position.y - 1.5 <= groundLevel) {
+      model.position.y = groundLevel + 1.5;
+      model.velocity.y = 0;
+    }
+  }
+
+  if (isFallingOffEdge && model.position.y < -50) {
+    cancelAnimationFrame(animationId);
+    alert('Game Over! You fell off the edge.');
+  }
 
   updateScore();
-
 
   renderer.render(scene, camera);
 
