@@ -4,6 +4,24 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const scene = new THREE.Scene();
 
 
+// Camera
+const camera = new THREE.PerspectiveCamera(
+  90,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(0, 5, 10);
+
+// Create the renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true; // Enable shadows
+
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement)
+
 //Space background
 const loader = new THREE.TextureLoader();
 loader.load('textures/space.jpg', function(texture) {
@@ -11,6 +29,7 @@ loader.load('textures/space.jpg', function(texture) {
   texture.wrapT = THREE.RepeatWrapping;
   // texture.repeat.set(2, 2);
   scene.background = texture;
+  renderer.render(scene, camera);
 });
 
 // Create a new loader2 instance using GLTFLoader
@@ -41,24 +60,6 @@ loader2.load(
     console.error('An error happened while loading the GLTF model:', error);
   }
 );
-
-// Camera
-const camera = new THREE.PerspectiveCamera(
-  90,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(0, 5, 10);
-
-// Create the renderer
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true; // Enable shadows
-
-document.body.appendChild(renderer.domElement);
-
-const controls = new OrbitControls(camera, renderer.domElement)
 
 // ------------ Ground (lane) setup ------------
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
@@ -138,7 +139,7 @@ scoreOverlay.style.height = '100%';
 scoreOverlay.style.color = 'white';
 scoreOverlay.style.fontSize = '50px';
 scoreOverlay.style.justifyContent = 'center';
-scoreOverlay.style.display = 'flex';
+scoreOverlay.style.display = 'none';
 scoreOverlay.style.fontFamily = 'Orbitron, sans-serif';
 scoreOverlay.innerText = 'Score: 0';
 document.body.appendChild(scoreOverlay);
@@ -160,8 +161,38 @@ pausedOverlay.style.fontFamily = 'Orbitron, sans-serif';
 pausedOverlay.innerText = 'GAME PAUSED';
 document.body.appendChild(pausedOverlay);
 
+// Create the start menu overlay
+const startMenuOverlay = document.createElement('div');
+startMenuOverlay.style.position = 'absolute';
+startMenuOverlay.style.top = '0';
+startMenuOverlay.style.left = '0';
+startMenuOverlay.style.width = '100%';
+startMenuOverlay.style.height = '100%';
+startMenuOverlay.style.color = 'white';
+startMenuOverlay.style.fontSize = '50px';
+startMenuOverlay.style.display = 'flex';
+startMenuOverlay.style.justifyContent = 'center';
+startMenuOverlay.style.alignItems = 'center';
+startMenuOverlay.style.fontFamily = 'Orbitron, sans-serif';
+startMenuOverlay.innerHTML = `
+  <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100vh; text-align: center; font-family: Orbitron, sans-serif; padding: 20px;">
+    <div style="flex-grow: 0; margin-top: 20px;">
+      <p style="font-size: 60px; margin: 0;">SPACE DASH</p>
+      <p style="font-size: 24px; margin: 10px 0 20px;">Uh-oh, the space police are hot on your trail! Navigate through dangerous obstacles and stay ahead of them for as long as you can. One wrong move, and you'll be thrown into the deepest corner of space prison!</p>
+    </div>
+    
+    <div style="flex-grow: 1;"></div> <!-- Empty space to push the button to the bottom -->
+    
+    <button id="startGameButton" style="font-family: 'Orbitron'; font-size: 24px; padding: 15px 30px; background-color: transparent; color: white; border: 2px solid white; border-radius: 10px; cursor: pointer; margin: 10px auto 20px; display: block; width: 400px; height: 60px;">
+      Start Game
+    </button>    
+  </div>
+`;
+document.body.appendChild(startMenuOverlay);
+
 // ------------ Menu ------------
 let isPaused = false;
+let gameStarted = false;
 let isFallingOffEdge = false;
 
 // Pause function
@@ -174,6 +205,21 @@ function togglePause() {
     console.log("Game Resumed");
     pausedOverlay.style.display = 'none';
   }
+}
+
+// Handle start game button click
+const startGameButton = document.getElementById('startGameButton');
+startGameButton.addEventListener('click', () => {
+  startGame();
+});
+
+function startGame() {
+  // Remove the start menu
+  startMenuOverlay.style.display = 'none';
+  scoreOverlay.style.display = 'flex';
+  // Start the game loop
+  gameStarted = true;
+  animate();
 }
 
 // Score update function (based on how many frames passed)
@@ -534,7 +580,7 @@ function animate() {
 
   controls.update();
 }
-animate();
+// animate();
 
 // Handle window resizing
 window.addEventListener('resize', () => {
