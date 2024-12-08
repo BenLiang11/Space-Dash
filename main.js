@@ -28,7 +28,6 @@ const loader = new THREE.TextureLoader();
 loader.load('textures/space.jpg', function(texture) {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  // texture.repeat.set(2, 2);
   scene.background = texture;
   renderer.render(scene, camera);
 });
@@ -44,8 +43,8 @@ loader2.load(
     model = gltf.scene;
     scene.add(model);
 
-    // Optional: adjust the model's scale and position
-    model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
+    // Adjust the model's scale and position
+    model.scale.set(1.5, 1.5, 1.5); // Scale the model
     model.rotation.y = Math.PI;
     model.position.set(0, 0.5, 0); // Set the position of the model
     model.castShadow = true;
@@ -53,7 +52,7 @@ loader2.load(
     model.velocity = new THREE.Vector3(0, 0, 0);
   },
   (xhr) => {
-    // Optional: Track the loading progress
+    // Track the loading progress
     console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
   },
   (error) => {
@@ -64,7 +63,6 @@ loader2.load(
 
 // ------------ Ground (lane) setup ------------
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
-//const groundMaterial = new THREE.MeshStandardMaterial({ color: '#264653' });
 const groundMaterial = new THREE.ShaderMaterial({ 
   uniforms: {
     iTime: { value: 0.0 }, // Time uniform for animation
@@ -82,10 +80,7 @@ fragmentShader: `
     varying vec2 vUv;
 
     void main() {
-        
-      //float wave = sin(vUv.x * 10.0 + iTime) * 0.5 + 0.6;
-      //float colorFactor = sin(vUv.y * 20.0 - iTime) * 0.5 + 0.5;
-        vec2 distortedUv = vUv;
+      vec2 distortedUv = vUv;
       distortedUv.y += sin(distortedUv.x * 10.0 + iTime * 2.0) * 0.1; // Horizontal waves
       distortedUv.x += sin(distortedUv.y * 15.0 - iTime * 1.5) * 0.05; // Vertical waves
 
@@ -98,7 +93,6 @@ fragmentShader: `
       vec3 auroraColor = mix(vec3(0.0, 0.8, 0.5), vec3(0.3, 0.1, 0.8), colorFactor);
       vec3 finalColor = mix(baseColor, auroraColor, wave);
       // Combine wave effect with aurora color
-      //gl_FragColor = vec4(auroraColor * wave, 1.0);
       gl_FragColor = vec4(finalColor, 1.0);
 
 
@@ -220,6 +214,7 @@ gameOverOverlay.innerHTML = `
   </div>
 `;
 document.body.appendChild(gameOverOverlay);
+
 // ------------ Menu ------------
 let isPaused = false;
 let gameStarted = false;
@@ -229,10 +224,8 @@ let isFallingOffEdge = false;
 function togglePause() {
   isPaused = !isPaused;
   if (isPaused) {
-    console.log("Game Paused");
     pausedOverlay.style.display = 'flex';
   } else {
-    console.log("Game Resumed");
     pausedOverlay.style.display = 'none';
   }
 }
@@ -333,9 +326,6 @@ window.addEventListener('keydown', (event) => {
       keys.s = true;
       break;
     case 'Space':
-      // if (cube.position.y <= groundLevel + 0.51) {
-      //   cube.velocity.y = 0.2;
-      // }
       if (model.position.y- 1.5 <= groundLevel + 0.51) {
         model.velocity.y = 0.25;
       }
@@ -376,7 +366,6 @@ scene.add(flashlightTarget);
 flashlight.target = flashlightTarget;
 
 // Create a cone geometry to visualize the flashlight beam
-// Adjust height and radius to your liking
 const beamGeometry = new THREE.ConeGeometry(3, 5, 32, 1, true);
 const beamMaterial = new THREE.MeshBasicMaterial({
   color: 0xffe0e0,
@@ -394,7 +383,6 @@ flashlightBeam.rotation.x = -Math.PI / 2;
 flashlightOverlay.addEventListener('click', () => {
   flashlight.visible = !flashlight.visible;
   flashlightBeam.visible = flashlight.visible;
-  console.log("Flashlight toggled:", flashlight.visible);
 });
 
 
@@ -427,15 +415,6 @@ let enemies = [];
 let frames = 0;
 let spawnRate = 200;
 
-// Collision detection function
-
-// function boxCollision(box1, box2) {
-//   const xCollide = Math.abs(box1.position.x - box2.position.x) < 1;
-//   const yCollide = Math.abs(box1.position.y - box2.position.y) < 1;
-//   const zCollide = Math.abs(box1.position.z - box2.position.z) < 1;
-//   return xCollide && yCollide && zCollide;
-// }
-
 function boxCollision(box1, box2) {
   const halfSize1 = box1.scale.x / 2; // Assuming scale.x represents half width
   const halfSize2 = box2.scale.x / 2;
@@ -446,10 +425,6 @@ function boxCollision(box1, box2) {
   
   return xCollide && yCollide && zCollide;
 }
-
-
-
-
 
 let rotationSpeed=0;
 // Lane boundary detection
@@ -466,11 +441,6 @@ function isPlayerInLane() {
   // Check if player is within lane
   return playerMinX >= laneMinX && playerMaxX <= laneMaxX;
 }
-
-
-
-
-
 
 const enemyVertexShader = `
   varying vec3 vNormal;
@@ -515,6 +485,7 @@ let shieldSphere = null;
 let shieldPowerUps = [];
 const shieldSpawnRate = 1500;
 
+// Render shield power up 
 function spawnShieldPowerUp() {
   const position = getNonOverlappingPosition(ground.geometry.parameters.width, -15);
   if (position === null) return;
@@ -531,6 +502,7 @@ function spawnShieldPowerUp() {
   shieldPowerUps.push(shieldPowerUp);
 }
 
+// Collision detection for shield activation
 function playerCollidesWithShield(shield) {
   const xCollide = Math.abs(model.position.x - shield.position.x) < 1;
   const yCollide = Math.abs(model.position.y - shield.position.y) < 1;
@@ -551,7 +523,7 @@ const mouse = new THREE.Vector2();
 
 // Create the raygun UI element, initially hidden
 const raygunOverlay = document.createElement('img');
-raygunOverlay.src = 'images/raygun.png'; // Use your own icon path
+raygunOverlay.src = 'images/raygun.png';
 raygunOverlay.style.position = 'absolute';
 raygunOverlay.style.width = '80px';
 raygunOverlay.style.height = '80px';
@@ -578,7 +550,6 @@ raygunOverlay.addEventListener('click', () => {
     isTimeStopped = true;
     timeStopStart = performance.now();
     raygunOverlay.style.display = 'none';
-    console.log("Time stopped! Click enemies to zap them.");
 
     activateLaser();
   }
@@ -630,7 +601,6 @@ window.addEventListener('click', (event) => {
         
         shootSound.currentTime = 0; 
         shootSound.play();
-        console.log("Enemy zapped!");
       }
     }
   }
@@ -701,7 +671,6 @@ function animate() {
 
     if (model && playerCollidesWithRaygun(rg)) {
       hasRaygun = true;
-      console.log("Raygun acquired! Click the raygun icon to stop time.");
       raygunOverlay.style.display = 'block'; // Show raygun icon
       scene.remove(rg);
       raygunPowerUps.splice(index, 1);
@@ -718,7 +687,6 @@ function animate() {
     const elapsed = performance.now() - timeStopStart;
     if (elapsed > timeStopDuration) {
       isTimeStopped = false;
-      console.log("Time resumed!");
 
       deactivateLaser();
     }
@@ -739,9 +707,6 @@ function animate() {
   // Enemy spawning
   if (frames % spawnRate === 0) {
     if (spawnRate > 20) spawnRate -= 20;
-
-    // const enemyGeometry = new THREE.BoxGeometry(1, 1, 1);
-    // const enemyMaterial = new THREE.MeshStandardMaterial({ color: 'red' });
 
     const position = getNonOverlappingPosition(ground.geometry.parameters.width, -20);
     if (position !== null) {
@@ -800,7 +765,6 @@ function animate() {
       hasShield = true;
       scene.remove(shield);
       shieldPowerUps.splice(index, 1);
-      console.log("Shield acquired!");
     }
 
     // Shield sphere
@@ -836,7 +800,6 @@ function animate() {
           // Shield breaks, player becomes invulnerable for 1 second
           hasShield = false;
           isInvulnerable = true;
-          console.log("Shield broken! Player is invulnerable for 1 second.");
           // Break shield sphere
           if (shieldSphere) {
             scene.remove(shieldSphere);
@@ -844,7 +807,6 @@ function animate() {
           }
           setTimeout(() => {
             isInvulnerable = false;
-            console.log("Invulnerability worn off.");
           }, 1000);
           // Remove the enemy that broke the shield
           scene.remove(enemy);
@@ -908,7 +870,6 @@ function animate() {
 
   controls.update();
 }
-// animate();
 
 // Handle window resizing
 window.addEventListener('resize', () => {
