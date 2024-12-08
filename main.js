@@ -22,7 +22,7 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement)
 
-//Space background
+// Space background
 const loader = new THREE.TextureLoader();
 loader.load('textures/space.jpg', function(texture) {
   texture.wrapS = THREE.RepeatWrapping;
@@ -31,31 +31,27 @@ loader.load('textures/space.jpg', function(texture) {
   renderer.render(scene, camera);
 });
 
-// Create a new loader2 instance using GLTFLoader
+// Roboball model
 const loader2 = new GLTFLoader();
 let model;
-// Load a GLTF model
+
 loader2.load(
-  'roboball/scene.gltf', // The path to the GLTF model
+  'roboball/scene.gltf',
   (gltf) => {
-    // The model is successfully loaded
     model = gltf.scene;
     scene.add(model);
 
-    // Adjust the model's scale and position
-    model.scale.set(1.5, 1.5, 1.5); // Scale the model
+    model.scale.set(1.5, 1.5, 1.5);
     model.rotation.y = Math.PI;
-    model.position.set(0, 0.5, 0); // Set the position of the model
+    model.position.set(0, 0.5, 0);
     model.castShadow = true;
     model.receiveShadow = true;
     model.velocity = new THREE.Vector3(0, 0, 0);
   },
   (xhr) => {
-    // Track the loading progress
     console.log((xhr.loaded / xhr.total) * 100 + '% loaded');
   },
   (error) => {
-    // Handle any errors that occur
     console.error('An error happened while loading the GLTF model:', error);
   }
 );
@@ -64,7 +60,7 @@ loader2.load(
 const groundGeometry = new THREE.BoxGeometry(10, 0.5, 50);
 const groundMaterial = new THREE.ShaderMaterial({ 
   uniforms: {
-    iTime: { value: 0.0 }, // Time uniform for animation
+    iTime: { value: 0.0 },
 },
 vertexShader: `
     varying vec2 vUv;
@@ -211,6 +207,7 @@ gameOverOverlay.innerHTML = `
   </div>
 `;
 document.body.appendChild(gameOverOverlay);
+
 // ------------ Menu ------------
 let isPaused = false;
 let gameStarted = false;
@@ -226,24 +223,22 @@ function togglePause() {
   }
 }
 
-// Handle start game button click
+// Handle start game button
 const startGameButton = document.getElementById('startGameButton');
 startGameButton.addEventListener('click', () => {
   startGame();
 });
 
-// Start game function
+// Start game
 function startGame() {
-  // Remove the start menu
   startMenuOverlay.style.display = 'none';
   scoreOverlay.style.display = 'flex';
   flashlightOverlay.style.display = 'block';
-  // Start the game loop
   gameStarted = true;
   animate();
 }
 
-// Score update function (based on how many frames passed)
+// Score update function
 function updateScore() {
   scoreOverlay.innerText = 'Score: ' + Math.floor(frames/20);
 }
@@ -264,7 +259,6 @@ replayButton.addEventListener('click', () => {
 
 // Restart game function
 function replayGame() {
-  // reset score and display
   frames = 0;
   scoreOverlay.style.display = 'flex';
   gameOverOverlay.style.display = 'none';
@@ -273,15 +267,15 @@ function replayGame() {
   flashlight.visible = false;
   flashlightBeam.visible = false;
 
-  // reset player position and direction
-  model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
+  // Reset player position
+  model.scale.set(1.5, 1.5, 1.5);
   model.rotation.y = Math.PI;
-  model.position.set(0, 0.5, 0); // Set the position of the model
+  model.position.set(0, 0.5, 0);
   model.castShadow = true;
   model.receiveShadow = true;
   model.velocity = new THREE.Vector3(0, 0, 0);
 
-  // reset other game variables
+  // Reset other variables
   isFallingOffEdge = false;
   enemies.forEach(enemy => {
     scene.remove(enemy);
@@ -301,7 +295,6 @@ function replayGame() {
   hasRaygun = false;
   isTimeStopped = false;
 
-  // restart animation
   animate();
 }
 
@@ -331,6 +324,7 @@ window.addEventListener('keydown', (event) => {
       break;
   }
 });
+
 window.addEventListener('keyup', (event) => {
   switch (event.code) {
     case 'KeyA':
@@ -354,7 +348,7 @@ const flashlightOverlay = document.getElementById('flashlightOverlay');
 // Spotlight as the flashlight
 const flashlight = new THREE.SpotLight(0xffffff, 1, 50, Math.PI / 8, 0.5, 2);
 flashlight.castShadow = true;
-flashlight.visible = false; // Off initially
+flashlight.visible = false;
 scene.add(flashlight);
 
 const flashlightTarget = new THREE.Object3D();
@@ -370,8 +364,9 @@ const beamMaterial = new THREE.MeshBasicMaterial({
   side: THREE.DoubleSide,
   blending: THREE.AdditiveBlending,
 });
+
 const flashlightBeam = new THREE.Mesh(beamGeometry, beamMaterial);
-flashlightBeam.visible = false; // Only visible when flashlight is on
+flashlightBeam.visible = false;
 scene.add(flashlightBeam);
 flashlightBeam.rotation.x = -Math.PI / 2;
 
@@ -381,28 +376,22 @@ flashlightOverlay.addEventListener('click', () => {
   flashlightBeam.visible = flashlight.visible;
 });
 
-
 function updateFlashlight() {
   if (!model) return;
   
-  // Position flashlight at player's position
   flashlight.position.copy(model.position);
-  flashlight.position.y += 0.5; // slightly above ground level
-  // Assume player faces down the negative Z axis.
+  flashlight.position.y += 0.5;
+
   const forward = new THREE.Vector3(0, -1, 0);
   forward.applyQuaternion(model.quaternion);
   
-  // Set flashlight target ahead of player
   const targetPos = new THREE.Vector3().copy(model.position).add(forward.setLength(10));
   flashlightTarget.position.copy(targetPos);
 
-  // Position and orient the beam
   flashlightBeam.position.copy(model.position);
   flashlightBeam.position.y += 0.5;
   flashlightBeam.position.z -= 2;
   
-  // Orient the beam along forward vector
-  // The cone by default points along -Y, so rotate to point along forward
   flashlightBeam.lookAt(targetPos);
 }
 
@@ -413,7 +402,7 @@ let spawnRate = 200;
 
 // Collision detection function
 function boxCollision(box1, box2) {
-  const halfSize1 = box1.scale.x / 2; // Assuming scale.x represents half width
+  const halfSize1 = box1.scale.x / 2;
   const halfSize2 = box2.scale.x / 2;
 
   const xCollide = Math.abs(box1.position.x - box2.position.x) < (halfSize1 + halfSize2);
@@ -424,18 +413,16 @@ function boxCollision(box1, box2) {
 }
 
 let rotationSpeed=0;
-// Lane boundary detection
+
+// Check if player is in lane
 function isPlayerInLane() {
-  // Calculate lane boundaries
   const laneMinX = ground.position.x - (ground.geometry.parameters.width / 2);
   const laneMaxX = ground.position.x + (ground.geometry.parameters.width / 2);
 
-  // Calculate player boundaries
   const radius = model.scale.x / 2;
   const playerMinX = model.position.x - radius;
   const playerMaxX = model.position.x + radius;
 
-  // Check if player is within lane
   return playerMinX >= laneMinX && playerMaxX <= laneMaxX;
 }
 
@@ -471,7 +458,6 @@ const enemyFragmentShader = `
   }
 `;
 
-
 const clock = new THREE.Clock();
 
 // ------------ Powerup: Shield ------------
@@ -506,17 +492,15 @@ function playerCollidesWithShield(shield) {
 }
 
 // ------------ Powerup: Raygun ------------
-// Variables to track raygun state
 let hasRaygun = false;
 let isTimeStopped = false;
 let timeStopStart = 0;
-const timeStopDuration = 5000; // 5 seconds
+const timeStopDuration = 5000;
 
-// We'll need a raycaster and a vector2 for obstacle-clicking
+// Raycaster
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Create the raygun UI element, initially hidden
 const raygunOverlay = document.createElement('img');
 raygunOverlay.src = 'images/raygun.png';
 raygunOverlay.style.position = 'absolute';
@@ -525,11 +509,11 @@ raygunOverlay.style.height = '80px';
 raygunOverlay.style.bottom = '20px';
 raygunOverlay.style.right = '20px';
 raygunOverlay.style.cursor = 'pointer';
-raygunOverlay.style.display = 'none'; // Hidden until we have the raygun
+raygunOverlay.style.display = 'none';
 document.body.appendChild(raygunOverlay);
 
-const shootSound = new Audio('sounds/raygun_laser.mp3'); // Update the audio file path as needed
-shootSound.volume = 0.2; // Adjust volume if desired
+const shootSound = new Audio('sounds/raygun_laser.mp3');
+shootSound.volume = 0.2; // Adjust if needed
 
 function activateLaser() {
   laserOverlay.style.display = 'block';
@@ -539,7 +523,6 @@ function deactivateLaser() {
   laserOverlay.style.display = 'none';
 }
 
-// When raygunOverlay is clicked, if we have the raygun and time isn't stopped yet, stop time
 raygunOverlay.addEventListener('click', () => {
   if (hasRaygun && !isTimeStopped) {
     isTimeStopped = true;
@@ -550,7 +533,6 @@ raygunOverlay.addEventListener('click', () => {
   }
 });
 
-// Function to spawn raygun powerup
 function spawnRaygunPowerUp() {
   const position = getNonOverlappingPosition(ground.geometry.parameters.width, -15);
   if (position === null) return;
@@ -565,11 +547,9 @@ function spawnRaygunPowerUp() {
   raygunPowerUps.push(raygunPowerUp);
 }
 
-// Array to track the raygun powerups
 let raygunPowerUps = [];
-const raygunSpawnRate = 3000; // Spawn a raygun powerup every 3000 frames or so
+const raygunSpawnRate = 3000;
 
-// Function to check collision with raygun powerup
 function playerCollidesWithRaygun(rg) {
   const xCollide = Math.abs(model.position.x - rg.position.x) < 1;
   const yCollide = Math.abs(model.position.y - rg.position.y) < 1;
@@ -577,10 +557,8 @@ function playerCollidesWithRaygun(rg) {
   return xCollide && yCollide && zCollide;
 }
 
-// On mouse click in the scene, if time is stopped, try to zap enemies
 window.addEventListener('click', (event) => {
   if (isTimeStopped) {
-    // Convert mouse coordinates to normalized device coordinates
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
@@ -604,7 +582,6 @@ window.addEventListener('click', (event) => {
 // ------------ Prevent Overlap ------------
 const spawnRadius = 0.75; 
 
-// Checks if a potential spawn position overlaps with any existing objects
 function isOverlapping(x, y, z) {
   const allObjects = [...enemies, ...shieldPowerUps, ...raygunPowerUps];
 
@@ -634,14 +611,12 @@ function getNonOverlappingPosition(laneWidth, zPos = -15, maxAttempts = 50) {
 
     attempts++;
   }
-  // If no suitable position found, you could return null and skip spawning
   return null;
 }
 
 
 // ------------ Animation loop ------------
 function animate() {
-  // If paused, exit animate function
   if (isPaused) {
     requestAnimationFrame(animate);
     return;
@@ -666,7 +641,7 @@ function animate() {
 
     if (model && playerCollidesWithRaygun(rg)) {
       hasRaygun = true;
-      raygunOverlay.style.display = 'block'; // Show raygun icon
+      raygunOverlay.style.display = 'block';
       scene.remove(rg);
       raygunPowerUps.splice(index, 1);
     }
@@ -677,7 +652,7 @@ function animate() {
     }
   });
 
-  // If time is stopped, check how long it has been
+  // Stop laser
   if (isTimeStopped) {
     const elapsed = performance.now() - timeStopStart;
     if (elapsed > timeStopDuration) {
@@ -730,8 +705,8 @@ function animate() {
           vertexShader: enemyVertexShader,
           fragmentShader: enemyFragmentShader,
           uniforms: {
-            color: { value: new THREE.Color(0xddf0ff) }, // Blue color
-            shininess: { value: 64 }, // Shininess factor
+            color: { value: new THREE.Color(0xddf0ff) },
+            shininess: { value: 64 },
           },
         });
         break;
@@ -746,6 +721,7 @@ function animate() {
       enemies.push(enemy);
     }
   }
+
   // Power up spawning
   if (frames % shieldSpawnRate === 0) {
     spawnShieldPowerUp();
@@ -807,11 +783,11 @@ function animate() {
           scene.remove(enemy);
           enemies.splice(index, 1);
         } else if (!isInvulnerable) {
-          // Normal game over behavior if no shield and not invulnerable
+          // Normal game over behavior
           cancelAnimationFrame(animationId);
           handleGameOver();
         } 
-        // If isInvulnerable, just ignore the collisions
+        // If isInvulnerable, ignore the collisions
       }
     }
 
@@ -825,7 +801,7 @@ function animate() {
   frames++;
   if (model)
   {
-    if (frames%420==0) //every 7 sec
+    if (frames%420==0)
     {
       rotationSpeed=0.03;
     }
