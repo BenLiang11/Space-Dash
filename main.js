@@ -281,6 +281,8 @@ function replayGame() {
   gameOverOverlay.style.display = 'none';
   raygunOverlay.style.display = 'none';
   laserOverlay.style.display = 'none';
+  flashlight.visible = false;
+  flashlightBeam.visible = false;
 
   // reset player position and direction
   model.scale.set(1.5, 1.5, 1.5); // Scale the model if necessary
