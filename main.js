@@ -229,10 +229,8 @@ let isFallingOffEdge = false;
 function togglePause() {
   isPaused = !isPaused;
   if (isPaused) {
-    console.log("Game Paused");
     pausedOverlay.style.display = 'flex';
   } else {
-    console.log("Game Resumed");
     pausedOverlay.style.display = 'none';
   }
 }
@@ -394,7 +392,6 @@ flashlightBeam.rotation.x = -Math.PI / 2;
 flashlightOverlay.addEventListener('click', () => {
   flashlight.visible = !flashlight.visible;
   flashlightBeam.visible = flashlight.visible;
-  console.log("Flashlight toggled:", flashlight.visible);
 });
 
 
@@ -578,7 +575,6 @@ raygunOverlay.addEventListener('click', () => {
     isTimeStopped = true;
     timeStopStart = performance.now();
     raygunOverlay.style.display = 'none';
-    console.log("Time stopped! Click enemies to zap them.");
 
     activateLaser();
   }
@@ -630,7 +626,6 @@ window.addEventListener('click', (event) => {
         
         shootSound.currentTime = 0; 
         shootSound.play();
-        console.log("Enemy zapped!");
       }
     }
   }
@@ -701,7 +696,6 @@ function animate() {
 
     if (model && playerCollidesWithRaygun(rg)) {
       hasRaygun = true;
-      console.log("Raygun acquired! Click the raygun icon to stop time.");
       raygunOverlay.style.display = 'block'; // Show raygun icon
       scene.remove(rg);
       raygunPowerUps.splice(index, 1);
@@ -718,7 +712,6 @@ function animate() {
     const elapsed = performance.now() - timeStopStart;
     if (elapsed > timeStopDuration) {
       isTimeStopped = false;
-      console.log("Time resumed!");
 
       deactivateLaser();
     }
@@ -800,7 +793,6 @@ function animate() {
       hasShield = true;
       scene.remove(shield);
       shieldPowerUps.splice(index, 1);
-      console.log("Shield acquired!");
     }
 
     // Shield sphere
@@ -836,7 +828,6 @@ function animate() {
           // Shield breaks, player becomes invulnerable for 1 second
           hasShield = false;
           isInvulnerable = true;
-          console.log("Shield broken! Player is invulnerable for 1 second.");
           // Break shield sphere
           if (shieldSphere) {
             scene.remove(shieldSphere);
@@ -844,7 +835,6 @@ function animate() {
           }
           setTimeout(() => {
             isInvulnerable = false;
-            console.log("Invulnerability worn off.");
           }, 1000);
           // Remove the enemy that broke the shield
           scene.remove(enemy);
